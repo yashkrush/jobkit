@@ -24,10 +24,19 @@ Write complete resume per the structure in CLAUDE.md. All sections.
 Do NOT print it in response prose — it is saved via RESUME_JSON and read from
 file by the UI.
 
-STEP 4 — ATS KEYWORD GATE
-Extract 8-10 must-have keywords. Check each against drafted resume.
-If below 85%, revise and recheck. Up to 2 retries.
-Report: Final ATS score: ~X%
+WORDING RULE (governs the whole draft): Map my real experience onto what the JD asks for, in MY OWN
+words. Do NOT reuse the JD's phrasing, nouns, or sentence shapes — echoing the JD reads as
+keyword-stuffing and is a failure. Address a requirement only when I have genuine matching experience
+in the base resume, the achievement bank, or companies/<slug>.md, described in my own terminology.
+Never invent experience, tools, titles, or metrics not in those sources. Unmatched requirements are
+gaps to report, never phrases to paste in.
+
+STEP 4 — COVERAGE CHECK (concepts, not verbatim keywords)
+List the 8-10 must-have requirements as concepts, not the JD's exact phrases. For each, check whether
+the resume demonstrates that capability through my real experience, in my own words (covered / partial
+/ gap). Do NOT insert the JD's phrasing to raise the score; own-words coverage counts. Surface only
+capabilities I genuinely have. Set ats_score to the share of requirements genuinely demonstrated.
+Report: Coverage: ~X% — and treat anything not honestly coverable as a gap, not phrasing to fix.
 
 STEP 5 — QUALITY CHECKS
 Quantification check, action verb check, 2-page cap. Fix and report each.

@@ -4,6 +4,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { Document, Packer, Paragraph, TextRun, AlignmentType, LevelFormat, BorderStyle, TabStopType } = require('docx');
 const mammoth = require('mammoth');
+const { marked } = require('marked');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -215,6 +216,79 @@ ${expHtml}
 ${tsHtml}
 <div class="section-heading">Languages &amp; Recognition</div>
 <p>${(s.languages_recognition||'').replace(/\n/g,'<br>')}</p>
+</body></html>`;
+}
+
+// --- lossless markdown → downloads (single source of truth) -----------------
+// The saved resume markdown is rendered verbatim into both DOCX and HTML so the
+// downloads match the UI preview word-for-word (preview = marked.parse(md) too).
+
+// Maps marked inline tokens → docx TextRuns (bold/italic/links/code preserved).
+function mdInlineRuns(nodes, opts = {}) {
+  const out = [];
+  const base = { font: 'Arial', size: opts.size || 20, color: opts.color };
+  const walk = (arr, bold, ital) => (arr || []).forEach(n => {
+    if (n.type === 'strong') return walk(n.tokens, true, ital);
+    if (n.type === 'em')     return walk(n.tokens, bold, true);
+    if (n.type === 'link')   return walk(n.tokens, bold, ital);
+    if (n.type === 'br')     return out.push(new TextRun({ break: 1 }));
+    if (n.type === 'codespan') return out.push(new TextRun({ ...base, text: n.text, font: 'Courier New' }));
+    out.push(new TextRun({ ...base, text: (n.text != null ? n.text : n.raw) || '',
+      bold: bold || opts.bold || false, italics: ital || opts.italics || false }));
+  });
+  walk(nodes, opts.bold, opts.italics);
+  return out.length ? out : [new TextRun({ ...base, text: '' })];
+}
+
+// DOCX rendered straight from the markdown — renders EVERY block, nothing skipped.
+function mdToDocx(md) {
+  const NAVY = '1F3A5F';
+  const paras = [];
+  marked.lexer(md || '').forEach(tok => {
+    if (tok.type === 'heading') {
+      if (tok.depth === 1) paras.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 40 },
+        children: mdInlineRuns(tok.tokens, { bold: true, size: 40, color: NAVY }) }));
+      else if (tok.depth === 2) paras.push(new Paragraph({ spacing: { before: 200, after: 70 },
+        border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: NAVY, space: 2 } },
+        children: mdInlineRuns(tok.tokens, { bold: true, size: 21, color: NAVY }) }));
+      else paras.push(new Paragraph({ spacing: { before: 140, after: 20 },
+        children: mdInlineRuns(tok.tokens, { bold: true, size: 21 }) }));
+    } else if (tok.type === 'paragraph') {
+      paras.push(new Paragraph({ spacing: { after: 60 }, children: mdInlineRuns(tok.tokens, {}) }));
+    } else if (tok.type === 'list') {
+      tok.items.forEach(item => {
+        const inline = (item.tokens || []).flatMap(t => t.tokens || [{ type: 'text', text: t.text || '' }]);
+        paras.push(new Paragraph({ numbering: { reference: 'bullets', level: 0 }, spacing: { after: 40 },
+          children: mdInlineRuns(inline, {}) }));
+      });
+    } else if (tok.raw && tok.raw.trim() && tok.type !== 'hr' && tok.type !== 'space') {
+      paras.push(new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: tok.raw.trim(), font: 'Arial', size: 20 })] }));
+    }
+  });
+  const doc = new Document({
+    styles: { default: { document: { run: { font: 'Arial', size: 20 } } } },
+    numbering: { config: [{ reference: 'bullets', levels: [{ level: 0, format: LevelFormat.BULLET, text: '•',
+      alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 360, hanging: 200 } } } }] }] },
+    sections: [{ properties: { page: { size: { width: 11906, height: 16838 },
+      margin: { top: 1000, right: 1000, bottom: 1000, left: 1000 } } }, children: paras }],
+  });
+  return Packer.toBuffer(doc);
+}
+
+// HTML rendered straight from the markdown (same parser as the UI preview → identical content).
+function mdToHtml(md) {
+  const body = marked.parse(md || '', { async: false });
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Resume</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;line-height:1.45;max-width:820px;margin:28px auto;color:#1a1a1a;padding:0 22px}
+@media print{body{margin:0;max-width:100%}@page{size:A4;margin:15mm}}
+h1{font-size:20pt;color:#1F3A5F;text-align:center;margin:0 0 2px}
+h1 + p{text-align:center;color:#555;margin:0 0 2px}
+h2{font-size:11pt;color:#1F3A5F;text-transform:uppercase;letter-spacing:.5px;border-bottom:1.4px solid #1F3A5F;padding-bottom:2px;margin:16px 0 7px}
+h3{font-size:10.5pt;margin:11px 0 1px}
+em{color:#444}p{margin:4px 0}ul{margin:4px 0;padding-left:20px}li{margin:3px 0}a{color:#1F3A5F;text-decoration:none}
+</style></head><body>
+${body}
 </body></html>`;
 }
 
@@ -685,13 +759,16 @@ app.post('/api/rebuild-resume', async (req, res) => {
       return res.status(400).json({ error: 'resume_data with slug and date required' });
     const coDir = path.join(ROOT, 'output', resume_data.slug);
     await fs.mkdir(coDir, { recursive: true });
-    const buildData = resume_markdown
-      ? { ...resume_data, sections: serverParseMd(resume_markdown) }
-      : resume_data;
     const docxFile = resume_data.slug + '/resume-' + resume_data.slug + '-' + resume_data.date + '.docx';
     const htmlFile = resume_data.slug + '/resume-' + resume_data.slug + '-' + resume_data.date + '.html';
-    await fs.writeFile(path.join(ROOT, 'output', docxFile), await buildDocx(buildData));
-    await fs.writeFile(path.join(ROOT, 'output', htmlFile), buildPrintHtml(buildData));
+    if (resume_markdown && resume_markdown.trim()) {
+      // render the edited markdown verbatim — what the user sees is what downloads
+      await fs.writeFile(path.join(ROOT, 'output', docxFile), await mdToDocx(resume_markdown));
+      await fs.writeFile(path.join(ROOT, 'output', htmlFile), mdToHtml(resume_markdown));
+    } else {
+      await fs.writeFile(path.join(ROOT, 'output', docxFile), await buildDocx(resume_data));
+      await fs.writeFile(path.join(ROOT, 'output', htmlFile), buildPrintHtml(resume_data));
+    }
     res.json({ docx_file: docxFile, html_file: htmlFile });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -712,7 +789,7 @@ app.post('/api/run', async (req, res) => {
 
     console.log('[/api/run] jsonMatch:', !!jsonMatch, '| savedMatch:', savedMatch ? savedMatch[1] : null);
 
-    let resumeData = null, docxFile = null, htmlFile = null, resumePreview = null;
+    let resumeData = null, docxFile = null, htmlFile = null, resumePreview = null, mdContent = null, mdSrcName = null;
 
     if (jsonMatch) {
       try {
@@ -733,15 +810,13 @@ app.post('/api/run', async (req, res) => {
           const mdDest = path.join(ROOT, 'output', resumeData.slug,
             'resume-' + resumeData.slug + '-' + resumeData.date + '.md');
           try {
-            const mdContent = await fs.readFile(mdSrc, 'utf8');
+            mdContent = await fs.readFile(mdSrc, 'utf8');
             await fs.writeFile(mdDest, mdContent);
             await fs.unlink(mdSrc).catch(() => {});
             resumePreview = mdContent;
             resumeData.sections = serverParseMd(mdContent);
           } catch (e) { console.error('[/api/run] md move error:', e.message); }
         }
-        await fs.writeFile(path.join(ROOT, 'output', docxFile), await buildDocx(resumeData));
-        await fs.writeFile(path.join(ROOT, 'output', htmlFile), buildPrintHtml(resumeData));
         // auto-create company file if it doesn't exist yet
         const coFile = path.join(ROOT, 'companies', resumeData.slug + '.md');
         try {
@@ -757,6 +832,7 @@ app.post('/api/run', async (req, res) => {
     if (!resumePreview && savedMatch) {
       try {
         resumePreview = await fs.readFile(path.join(ROOT, savedMatch[1]), 'utf8');
+        mdSrcName = path.basename(savedMatch[1]);
         console.log('[/api/run] resumePreview loaded via SAVED fallback, length:', resumePreview.length);
       } catch (e) { console.log('[/api/run] SAVED fallback read failed:', e.message); }
     }
@@ -787,12 +863,42 @@ app.post('/api/run', async (req, res) => {
         if (candidates.length > 0) {
           candidates.sort((a, b) => b.mtime - a.mtime);
           resumePreview = await fs.readFile(path.join(candidates[0].dir, candidates[0].name), 'utf8');
+          mdSrcName = candidates[0].name;
           console.log('[/api/run] resumePreview loaded via scan fallback:', candidates[0].name, 'length:', resumePreview.length);
         }
       } catch (e) { console.log('[/api/run] scan fallback failed:', e.message); }
     }
 
     console.log('[/api/run] resumePreview length:', resumePreview ? resumePreview.length : 0);
+
+    // Build the downloadable DOCX/HTML from the resume markdown — one place, so the download
+    // buttons appear whenever we recovered a resume, even when the RESUME_JSON marker was absent.
+    const finalMd = mdContent || resumePreview;
+    if (finalMd && finalMd.trim()) {
+      if (!docxFile) {
+        // RESUME_JSON was absent — derive slug/date from the recovered md filename and
+        // relocate it into output/<slug>/ so everything lives alongside the downloads.
+        const m = (mdSrcName || '').match(/resume-(.+)-(\d{6,8})\.md$/);
+        if (m) {
+          const slug = m[1], date = m[2];
+          docxFile = slug + '/resume-' + slug + '-' + date + '.docx';
+          htmlFile = slug + '/resume-' + slug + '-' + date + '.html';
+          await fs.mkdir(path.join(ROOT, 'output', slug), { recursive: true });
+          await fs.writeFile(path.join(ROOT, 'output', slug, 'resume-' + slug + '-' + date + '.md'), finalMd).catch(() => {});
+          // remove the top-level copy left by the skill, if any
+          if (!mdSrcName.includes('/')) await fs.unlink(path.join(ROOT, 'output', mdSrcName)).catch(() => {});
+        }
+      }
+      if (docxFile) {
+        try {
+          await fs.writeFile(path.join(ROOT, 'output', docxFile), await mdToDocx(finalMd));
+          await fs.writeFile(path.join(ROOT, 'output', htmlFile), mdToHtml(finalMd));
+        } catch (e) {
+          console.error('[/api/run] download build error:', e.message);
+          docxFile = null; htmlFile = null;
+        }
+      }
+    }
 
     let diffData = null;
     if (diffMatch) { try { diffData = JSON.parse(diffMatch[1].trim()); } catch (e) {} }

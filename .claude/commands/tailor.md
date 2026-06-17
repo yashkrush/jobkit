@@ -57,17 +57,42 @@ This reasoning directly shapes the emphasis, tone, and bullet ordering in the re
 STEP 4 — DRAFT FULL RESUME
 Write the complete tailored resume. Single-column, ATS-safe structure.
 
+WORDING RULE (governs the whole draft — read first):
+Map my real experience onto what the JD asks for, expressed in MY OWN words. Do NOT reuse the
+JD's phrasing, nouns, or sentence shapes — echoing the JD reads as keyword-stuffing to recruiters
+and is a failure, not a success. Address a JD requirement only when I have genuine matching
+experience in the base resume, the CLAUDE.md achievement bank, or companies/<slug>.md — and
+describe it in my own standard terminology. Never invent experience, tools, titles, or metrics not
+present in those sources. A requirement I can't honestly match is a gap to report (Step 9), never a
+phrase to paste in.
+
 NAME LINE: Yash Kulshreshtha, B.Tech, MSc
 CONTACT: Berlin, Germany (German Permanent Resident) · +49 163 171 0329 · yashkulshreshtha@hotmail.com · linkedin.com/in/yashkul
 TITLE LINE: role-tuned, e.g. "QA Manager | Quality Engineering Leader | Test Automation"
 
-PROFILE (3–4 lines): Mirror the JD's top 3 must-haves. Lead with scope + strongest differentiator.
+PROFILE (3–4 lines): Address the JD's top 3 must-haves — but describe the matching real experience
+in my own words; do NOT echo the JD's phrasing. Lead with scope + strongest differentiator.
 
-CORE COMPETENCIES: Reorder to lead with what this JD values most. Use exact JD keyword phrases where they genuinely match.
+CORE COMPETENCIES: Reorder to lead with what this JD values most, named in my own standard terms
+from the base resume — do NOT copy the JD's exact phrases.
 
 PROFESSIONAL EXPERIENCE:
 Delivery Hero SE (Feb 2021–Present): 6–8 bullets from the achievement bank only — no invention.
-Reorder to lead with most relevant. Use JD keywords naturally.
+Reorder to lead with most relevant, described in my own wording. Do NOT lift phrases or sentence
+shapes from the JD.
+BANK COVERAGE RULE: before finalising, scan the WHOLE achievement bank and include every item
+genuinely relevant to this JD. Do NOT silently drop a relevant achievement to save space — if the
+2-page cap forces a cut, say so in Step 8 and name exactly what was cut and why. The exploratory
+testing practice, the QMI/CFR/RRI tooling, and the end-to-end data pipelines are high-value, commonly
+relevant items — check them explicitly every time. Every bullet must trace to the base resume,
+the achievement bank, or companies/<slug>.md; if it cannot, it is invention — drop it.
+Under each role header, include a one-line ITALIC company descriptor, e.g.
+*Global online food & grocery delivery platform — operating in 40+ markets.*
+
+NOTE: the DOCX and HTML downloads now render from the saved markdown (Step 7) VERBATIM — nothing in
+the markdown is dropped, and nothing outside it appears. So write the saved markdown as the final,
+fully formatted resume: `# Name` first, then the title line, then the contact line, then `## Section`
+headings, `### Role · Company · dates | location` per role, the italic descriptor, then `- ` bullets.
 MayTek (May 2019–Dec 2020): 3–4 bullets, as-is unless a direct JD match exists.
 Atomants (Jun 2013–Apr 2019): 3–4 bullets including Red Herring Top 100 Asia 2014.
 
@@ -80,22 +105,24 @@ Test Automation · Languages & Platforms · CI/CD & DevOps · Test Analytics & R
 Observability & Cloud · Device & Compatibility · Practices
 
 LANGUAGES & RECOGNITION:
-English (fluent), German (A2 – actively progressing), Hindi (native)
+English (fluent), German (working towards B1), Hindi (native)
 Red Herring Top 100 Asia Winner (2014) · Published research: 3D stereo fields in VoIP (University of Essex) · Visa: German Permanent Resident
 
 Important: do NOT print the full resume in your response prose. It is saved via RESUME_JSON
 and read from file by the UI. Your printed response output should contain only the analysis
 (Steps 5 onwards). This keeps the response focused and parseable.
 
-STEP 5 — ATS KEYWORD GATE
-List the 8–10 must-have keywords from Step 1.
-Check each against the drafted resume text. Tally matches.
-Report: "ATS check: X/10 keywords present — ~Y%"
-If score < 85%: identify missing keywords, revise specific bullets/sections to include them
-naturally (no stuffing). Recheck. Repeat once more if still below 85%.
-If still below after 2 retries: report final honest score and note whether the gap is a
-genuine skill gap (acceptable) or just a framing gap (fix it).
-Report: "Final ATS score: ~Y%"
+STEP 5 — COVERAGE CHECK (concepts, not verbatim keywords)
+List the 8–10 must-have requirements from Step 1 as concepts — not the JD's exact phrases.
+For each, check whether the resume already demonstrates that capability through my real experience,
+in my own words. Mark each: covered / partial / genuine gap.
+Do NOT insert the JD's exact phrasing to raise the score — a concept covered in my own words counts
+as covered even when the wording differs from the JD's.
+If a capability I genuinely have (base resume / company files) isn't surfaced yet, surface it — in
+my words. Never add a capability I don't have to hit a number.
+Set ats_score (used by the UI) to the share of requirements genuinely demonstrated, as a percentage.
+Report: "Coverage: X/10 requirements demonstrated — ~Y%". Anything not honestly coverable is a gap
+for Step 9, not phrasing to paste in.
 
 STEP 6 — QUALITY CHECKS
 Quantification: flag any Delivery Hero bullet with no metric. Add one from the
@@ -167,7 +194,7 @@ Then output this JSON block for detailed highlighting (best effort):
 
 STEP 9 — GAPS
 List JD requirements not clearly met. Honest, not encouraging.
-Flag explicitly if German proficiency above A2 is required or strongly preferred.
+Flag explicitly if German proficiency at B1 or above is required or strongly preferred (still working towards B1).
 
 STEP 10 — COVER LETTER (only if --cover-letter flag)
 ~180 words in my voice. One specific true reason for this company.
