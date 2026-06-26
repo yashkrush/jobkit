@@ -218,5 +218,13 @@ landing/               Marketing one-pager
 
 ---
 
+## License
+
+[PolyForm Noncommercial License 1.0.0](LICENSE.md). Source-available: you're welcome to read,
+fork, learn from, and use JobKit for any **noncommercial** purpose. Commercial use is reserved
+to the author. If you want to use it commercially, get in touch.
+
+---
+
 *Built by [Yash Kulshreshtha](https://www.linkedin.com/in/yashkul). JobKit is a personal
 project; the resume content in this repo is illustrative.*
