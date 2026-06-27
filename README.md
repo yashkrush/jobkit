@@ -190,7 +190,7 @@ npm start          # → http://localhost:3000
    `claude` headless and bills *your* account — there's no shared key.
 2. **Onboard.** Open the app; with no profile yet it lands you on the **Setup** tab. Upload your
    résumé (PDF or DOCX) — optionally add comp/location/spelling and any wins not on the CV — and hit
-   *Generate my profile*. JobKit extracts the résumé, writes your `CLAUDE.md` (achievement bank,
+   *Generate profile*. JobKit extracts the résumé, writes your `CLAUDE.md` (achievement bank,
    positioning, voice and honesty rules) grounded only in what you provided, flagging anything it
    couldn't confirm with `[VERIFY: …]` / `[ADD: …]`, **and saves the uploaded file as your base
    résumé** — so there's no separate step. Review and tighten the profile; this corpus is what every
