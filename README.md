@@ -18,14 +18,14 @@ spawned headless on each request to read and write the actual files in the repo.
 > grounding & anti-hallucination for generative output · full-stack shipping (Node/Express, vanilla
 > JS, document generation) · a closed learning loop · pragmatic engineering judgment (fast/slow
 > split, deterministic scoring over an LLM guess). Designed, built and shipped solo, end to end —
-> and used daily to run an actual search.
+> and used daily on a live job hunt of my own.
 
 This is the public **code** repo; it's clone-and-run for anyone (see [Running it](#running-it-your-own-copy)).
 The data it operates on — résumés, company notes, pipeline — stays in a separate private repo on
 your own machine (see [Two-repo design](#two-repo-design)).
 
 > **Status:** built for one person, running locally — but now clone-and-run for anyone. The
-> [Setup tab](#running-it-your-own-copy) onboards you from a pasted CV into your own profile, and it
+> [Setup tab](#running-it-your-own-copy) onboards you from your own résumé into a profile, and it
 > runs on *your* Claude account with *your* data (all gitignored, never committed). It's still
 > deliberately single-user-per-checkout and un-hardened — read
 > [Limitations](#limitations-read-before-you-clone) before cloning.
@@ -64,7 +64,7 @@ Eight tabs, each backed by an endpoint in `server.js`:
 
 | Tab | What it does |
 |---|---|
-| **Setup** | First-run onboarding. Paste your CV / LinkedIn / career notes → JobKit drafts your `CLAUDE.md` profile (achievement bank, positioning, honesty rules), grounded entirely in what you pasted, with anything it can't confirm flagged for review. |
+| **Setup** | First-run onboarding. Upload your résumé (PDF/DOCX) — plus optional comp/location and any wins not on the CV → JobKit drafts your `CLAUDE.md` profile (achievement bank, positioning, honesty rules), grounded only in what you provide, with anything it can't confirm flagged for review. The upload also becomes your base résumé. |
 | **Pipeline** | `pipeline.md` rendered as live status cards — every company, stage, and next action in one view. |
 | **Companies** | Per-company notes and generated files. Upload your *actually-submitted* resume, mark sent, log entries, close/withdraw, delete. |
 | **Check Match** | Paste a JD → fast APPLY / MAYBE / SKIP verdict with reasoning, against an honest fit filter (comp, scope, language, location). Triage before you invest in a full tailor. |
@@ -223,8 +223,8 @@ I'm publishing this as a **portfolio piece and an idea**, not a product. Be clea
 - **Cost & latency live with the agent.** Every compute click is a full Claude Code run —
   slower and pricier than a single API call, and dependent on your local CLI auth.
 - **Bring your own profile.** The grounding corpus is personal — yours is generated on the Setup
-  tab (or `/onboard`, or `CLAUDE.md.template`) from your own CV and stays on your machine. No
-  example profile ships in this repo; the README excerpts only illustrate the *shape* to aim for.
+  tab (or `/onboard`, or `CLAUDE.md.template`) from your own résumé and stays on your machine. No
+  example profile ships in this repo; `CLAUDE.md.template` shows the *shape* to aim for.
 - **Heuristics, honestly labelled.** The ATS score is keyword coverage, not a real ATS
   parser. It's reproducible and useful for relative comparison — don't read it as a guarantee.
 
@@ -254,7 +254,7 @@ ats.js                 Deterministic ATS keyword-coverage scorer
 public/                Vanilla JS frontend (index.html, app.js, style.css)
 .claude/commands/      Slash commands = the agent's business logic (onboard, tailor, prep, log, intake)
 CLAUDE.md.template     Blank, structured profile skeleton — copied/filled to create your CLAUDE.md
-landing/               Marketing one-pager
+landing/               Marketing landing pages
 ```
 
 > `CLAUDE.md`, `companies/`, `resumes/`, `output/` and `pipeline.md` are **gitignored** —
