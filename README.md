@@ -67,8 +67,8 @@ Eight tabs, each backed by an endpoint in `server.js`:
 | **Setup** | First-run onboarding. Paste your CV / LinkedIn / career notes → JobKit drafts your `CLAUDE.md` profile (achievement bank, positioning, honesty rules), grounded entirely in what you pasted, with anything it can't confirm flagged for review. |
 | **Pipeline** | `pipeline.md` rendered as live status cards — every company, stage, and next action in one view. |
 | **Companies** | Per-company notes and generated files. Upload your *actually-submitted* resume, mark sent, log entries, close/withdraw, delete. |
-| **Check Match** | Paste a JD → fast APPLY/SKIP verdict with reasoning, against an honest fit filter (comp, scope, language, location). Triage before you invest in a full tailor. |
-| **Tailor** | Paste a JD → grounded, fully-tailored resume + cover letter + InMail, a deterministic ATS keyword score, and one-click **DOCX / HTML** download. |
+| **Check Match** | Paste a JD → fast APPLY / MAYBE / SKIP verdict with reasoning, against an honest fit filter (comp, scope, language, location). Triage before you invest in a full tailor. |
+| **Tailor** | Paste a JD → grounded, fully-tailored resume + an optional cover letter, a deterministic ATS keyword score, and one-click **DOCX / HTML** download. |
 | **Prep** | Generate a multi-page interview-prep pack for a specific company and round, built from the real JD ↔ CV gap. |
 | **Log** | Two speeds: an instant **Log** button (direct file write, no LLM, <2s) for routine notes, and **AI log** for ambiguous multi-company routing. |
 | **Intake** | Bulk-route a pasted blob of notes or a chat summary into the right company files and refresh the pipeline. |
@@ -76,8 +76,8 @@ Eight tabs, each backed by an endpoint in `server.js`:
 ### Things worth calling out
 
 - **Deterministic ATS score (`ats.js`).** Not an LLM guessing a number. It extracts weighted
-  keywords from the JD (case-sensitive hard tokens like `C#`, `CI/CD`, `.NET`; multi-word
-  phrases; stop-word filtered) and measures coverage in the resume. Same JD + resume → same
+  keywords from the JD (symbol-preserving hard tokens like `C#`, `CI/CD`, `.NET` that naive
+  tokenizers would mangle; multi-word phrases; stop-word filtered) and measures coverage in the resume. Same JD + resume → same
   score, every time, with an actionable missing-keyword list. A heuristic, honestly labelled
   as one — not a real ATS engine.
 - **Anti-fabrication by construction.** `CLAUDE.md` carries a *fabrication log* of specific
@@ -126,7 +126,8 @@ in `.claude/commands/*.md` — versioned prompt-programs the agent executes:
 
 ```
 .claude/commands/
-  tailor.md          # full tailor pipeline (verdict → CV → cover letter → InMail)
+  onboard.md         # generate a CLAUDE.md profile from an uploaded resume
+  tailor.md          # full tailor pipeline (verdict → CV → optional cover letter)
   tailor-analyse.md  # step 1: fast analysis only
   tailor-build.md    # step 2: build full resume after APPLY verdict
   prep.md            # interview prep pack
@@ -138,7 +139,7 @@ is just a form that triggers the command. Logic changes are prompt edits, not re
 
 ### Stack
 
-- **Backend:** Node + Express (`server.js`, ~1.2k lines). No framework beyond Express; no DB.
+- **Backend:** Node + Express (`server.js`, ~1.3k lines). No framework beyond Express; no DB.
 - **Persistence:** the filesystem + git. Markdown *is* the database.
 - **AI runtime:** Claude Code CLI, invoked headless per request, using your existing
   `claude` auth session.
