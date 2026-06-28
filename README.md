@@ -82,6 +82,11 @@ Eight tabs, each backed by an endpoint in `server.js`:
 - **Anti-fabrication by construction.** `CLAUDE.md` carries a *fabrication log* of specific
   phrasings the agent must never use, plus honesty rules ("name the gap rather than invent a
   match"). The ATS score is explicitly *not* allowed to justify adding a skill that isn't real.
+- **Two independent quality gates.** After a draft is written, the server runs two *separate*
+  `claude -p` passes — a **screening gate** (deterministic must-have keyword coverage, top-third
+  placement, and an honest "domain gap" ceiling it can't fake away) and a **verify gate** (every
+  claim traced back to the achievement bank; banned phrasings blocked) — so a verifier never grades
+  the same pass that wrote the draft. The output isn't trusted until it clears both.
 - **Fast/slow split.** Anything user-facing (file save, mark-sent, pipeline upsert) responds
   in under 2s with a direct file write; the slow LLM steps (context extraction, learning)
   run *after* and update the UI when they finish. The primary action never blocks on AI.
@@ -129,7 +134,10 @@ in `.claude/commands/*.md` — versioned prompt-programs the agent executes:
   tailor.md          # full tailor pipeline (verdict → CV → optional cover letter)
   tailor-analyse.md  # step 1: fast analysis only
   tailor-build.md    # step 2: build full resume after APPLY verdict
+  tailor-screen.md   # independent gate: screening-readiness (keyword coverage, domain-gap ceiling)
+  tailor-verify.md   # independent gate: grounding / fact-check against the achievement bank
   prep.md            # interview prep pack
+  learn.md           # learn from an application's outcome → route lessons to the right command
   log.md / intake.md # process logging + bulk note routing
 ```
 
@@ -150,16 +158,29 @@ is just a form that triggers the command. Logic changes are prompt edits, not re
 
 ### The learning loop, concretely
 
-1. `/tailor` produces a draft resume → download DOCX.
-2. You edit it externally (Google Docs / chat) — that edited file is the **source of truth**, not JobKit's draft.
-3. Upload the submitted DOCX (`POST /api/upload-sent`): it's saved, text-extracted via
-   mammoth, the prior draft is stashed as `_draft.md`, the company is marked sent and
-   upserted into the pipeline — all in <2s, no LLM.
-4. *Then* `POST /api/extract-context` runs the agent to diff submitted-vs-bank (new facts)
-   and submitted-vs-draft-in-context-of-JD (framing lessons).
-5. You approve; `add-to-bank` / `add-lessons` write the keepers back into `CLAUDE.md`.
+JobKit learns on two clocks — at **submission** (from the résumé) and at **outcome** (from the result).
 
-The corpus that grounds the next tailor is strictly better than it was before.
+**From the résumé you submit:**
+
+1. `/tailor` drafts a resume → the two independent gates check it (screening + grounding) → download DOCX.
+2. You edit it externally — that edited file is the **source of truth**, not JobKit's draft.
+3. Upload the submitted file (`POST /api/upload-sent`): saved, text-extracted via mammoth, prior draft
+   stashed as `_draft.md`, marked sent, pipeline upserted — all in <2s, no LLM.
+4. *Then* `POST /api/extract-context` diffs submitted-vs-bank and submitted-vs-draft to surface, for
+   your approval: **new facts**, **framing lessons**, **corrections** (where the submitted résumé
+   contradicts the bank — a changed technology, an updated tenure), and **honesty conflicts**. The last
+   are caught by a *deterministic* fabrication-log scanner, not the LLM — because the submitted file can
+   itself break a rule, so "source of truth" must never be allowed to silently overwrite an honesty rule.
+
+**From the outcome you log:**
+
+5. Logging a result (rejection, recruiter feedback, an interview) auto-runs `/learn`, which distils the
+   outcome into generalisable lessons and **routes** each to the command that will act on it — interview
+   feedback → `/prep`, screening signal → `/tailor`, conversion patterns → the apply/skip call — staged
+   for your approval, never auto-committed.
+
+The corpus that grounds the next application is strictly better than it was before — and a verifier
+never grades its own work.
 
 ### Two-repo design
 

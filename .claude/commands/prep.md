@@ -20,6 +20,12 @@ $ARGUMENTS
 
 ## Read everything first — answer only from this
 - CLAUDE.md — positioning, achievement bank, voice, comp/notice/leverage rules.
+- CLAUDE.md `## Interview lessons` — cross-company learnings from PAST interview outcomes/feedback.
+  Apply EVERY one of these this round (they are not specific to one company): bake them into the
+  delivery notes on the opener (§1), the STAR-story coaching (§3), and the mental model (§8). E.g. a
+  past "be more concise / chunk the narrative" lesson means the opener and stories here must be tightened
+  and you must add an explicit delivery reminder. These are recurring weak spots — do not let this pack
+  repeat the mistake that generated the lesson.
 - companies/<name>.md — stage, contacts, prior rounds, JD snapshot, anything learned.
 - The full job description if saved at output/<name>/jd-*.md — this is the primary source for the
   §5 JD-vs-CV gap diff. Prefer it over the truncated snapshot in the company file.

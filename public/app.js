@@ -353,6 +353,65 @@ function activateCompany(name) {
   loadCompany(name);
 }
 
+async function loadPendingLessons(name) {
+  const panel = document.getElementById('pending-lessons-panel');
+  const list = document.getElementById('pending-lessons-list');
+  const status = document.getElementById('pending-lessons-status');
+  if (!panel || !list) return;
+  status.textContent = '';
+  let data = null;
+  try { data = await api('/api/pending-lessons/' + encodeURIComponent(name)); } catch (e) {}
+  const groups = {
+    interview: (data && data.interview_lessons) || [],
+    tailoring: (data && data.tailoring_lessons) || [],
+    apply_skip: (data && data.apply_skip_lessons) || [],
+  };
+  const total = groups.interview.length + groups.tailoring.length + groups.apply_skip.length;
+  if (!total) { panel.hidden = true; return; }
+  const labels = { interview: 'Interview lessons (→ /prep)', tailoring: 'Tailoring lessons (→ /tailor)', apply_skip: 'Apply/skip lessons (→ /tailor-analyse)' };
+  const section = key => groups[key].length ? `
+    <div>
+      <div class="section-sublabel" style="margin-top:0;font-size:12px">${labels[key]}</div>
+      ${groups[key].map((l, i) => `
+        <label class="context-bullet-row">
+          <input type="checkbox" class="pending-cb" data-group="${key}" data-idx="${i}" checked />
+          <span>${escapeHtml(l)}</span>
+        </label>`).join('')}
+    </div>` : '';
+  list.innerHTML = section('interview') + section('tailoring') + section('apply_skip');
+  list._groups = groups;
+  panel._company = name;
+  panel.hidden = false;
+}
+
+document.getElementById('pending-lessons-apply').addEventListener('click', async () => {
+  const panel = document.getElementById('pending-lessons-panel');
+  const list = document.getElementById('pending-lessons-list');
+  const status = document.getElementById('pending-lessons-status');
+  const groups = list._groups || { interview: [], tailoring: [], apply_skip: [] };
+  const pick = key => Array.from(list.querySelectorAll('.pending-cb[data-group="' + key + '"]:checked'))
+    .map(cb => groups[key][parseInt(cb.dataset.idx)]);
+  const interview_lessons = pick('interview'), tailoring_lessons = pick('tailoring'), apply_skip_lessons = pick('apply_skip');
+  if (!interview_lessons.length && !tailoring_lessons.length && !apply_skip_lessons.length) {
+    status.style.color = 'var(--muted)'; status.textContent = 'Nothing checked.'; return;
+  }
+  try {
+    setBusy(true, 'updating CLAUDE.md…');
+    const r = await api('/api/add-routed-lessons', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company: panel._company, interview_lessons, tailoring_lessons, apply_skip_lessons }),
+    });
+    status.style.color = 'var(--muted)';
+    status.textContent = '✓ ' + r.added + ' lesson(s) added to CLAUDE.md';
+    panel.hidden = true; // server cleared the staged file
+  } catch (e) {
+    status.style.color = 'var(--red)'; status.textContent = 'Error: ' + e.message;
+  } finally { setBusy(false); }
+});
+document.getElementById('pending-lessons-dismiss').addEventListener('click', () => {
+  document.getElementById('pending-lessons-panel').hidden = true;
+});
+
 async function loadCompany(name) {
   const detail   = document.getElementById('company-detail');
   const nameEl   = document.getElementById('company-detail-name');
@@ -373,6 +432,8 @@ async function loadCompany(name) {
     if (view) view.textContent = 'Could not load company file: ' + e.message;
     return;
   }
+
+  loadPendingLessons(name); // surface any auto-learned outcome lessons awaiting approval
 
   const section  = document.getElementById('company-files-section');
   const fileList = document.getElementById('company-files-list');
@@ -1338,13 +1399,13 @@ document.getElementById('rerun-learning-btn').addEventListener('click', async ()
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ company }),
     });
-    const nb = ctx.new_bullets || [], fl = ctx.framing_lessons || [];
-    if (!nb.length && !fl.length) {
+    const nb = ctx.new_bullets || [], fl = ctx.framing_lessons || [], cr = ctx.corrections || [], cf = ctx.conflicts || [];
+    if (!nb.length && !fl.length && !cr.length && !cf.length) {
       statusEl.textContent = '✓ Learning ran — nothing new to add (already captured).';
     } else {
       statusEl.textContent = '✓ Learning ran — review below.';
     }
-    showContextReview(nb, fl);
+    showContextReview(nb, fl, cr, cf);
   } catch (e) {
     statusEl.style.color = 'var(--red)';
     statusEl.textContent = 'Learning failed: ' + e.message;
@@ -1417,7 +1478,7 @@ document.getElementById('upload-submit-btn').addEventListener('click', async () 
           body: JSON.stringify({ company }),
         });
         statusEl.textContent = '✓ Registered: ' + r.filename + ' · logged in pipeline';
-        showContextReview(ctx.new_bullets || [], ctx.framing_lessons || []);
+        showContextReview(ctx.new_bullets || [], ctx.framing_lessons || [], ctx.corrections || [], ctx.conflicts || []);
       } catch (e) {
         statusEl.textContent += ' (context extraction failed)';
       }
@@ -1436,8 +1497,22 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function showContextReview(bullets, lessons) {
+function showContextReview(bullets, lessons, corrections, conflicts) {
   lessons = lessons || [];
+  corrections = corrections || [];
+  conflicts = conflicts || [];
+  const conflBlock = document.getElementById('context-conflicts-block');
+  const conflList = document.getElementById('context-conflicts-list');
+  if (conflicts.length) {
+    conflList.innerHTML = conflicts.map(c => `
+      <div class="context-bullet-row" style="color:var(--red,#e05c5c)">
+        <span>⚠ <strong>${escapeHtml(c.in_resume)}</strong> — ${escapeHtml(c.rule)}${c.why ? ` <em style="color:var(--muted)">(${escapeHtml(c.why)})</em>` : ''}</span>
+      </div>
+    `).join('');
+    conflBlock.hidden = false;
+  } else {
+    conflBlock.hidden = true;
+  }
   const list = document.getElementById('context-bullets-list');
   const section = document.getElementById('context-review');
   if (!bullets.length) {
@@ -1467,6 +1542,22 @@ function showContextReview(bullets, lessons) {
     lessonsList._lessons = [];
     lessonsBlock.hidden = true;
   }
+
+  const corrBlock = document.getElementById('context-corrections-block');
+  const corrList = document.getElementById('context-corrections-list');
+  if (corrections.length) {
+    corrList.innerHTML = corrections.map((c, i) => `
+      <label class="context-bullet-row">
+        <input type="checkbox" class="context-correction-cb" data-idx="${i}" checked />
+        <span><s style="color:var(--muted)">${escapeHtml(c.old)}</s> → <strong>${escapeHtml(c.new)}</strong>${c.why ? ` <em style="color:var(--muted);font-size:12px">(${escapeHtml(c.why)})</em>` : ''}</span>
+      </label>
+    `).join('');
+    corrList._corrections = corrections;
+    corrBlock.hidden = false;
+  } else {
+    corrList._corrections = [];
+    corrBlock.hidden = true;
+  }
   section.hidden = false;
 }
 
@@ -1477,7 +1568,10 @@ document.getElementById('add-selected-context').addEventListener('click', async 
     .map(cb => list._bullets[parseInt(cb.dataset.idx)]);
   const checkedLessons = Array.from(lessonsList.querySelectorAll('.context-lesson-cb:checked'))
     .map(cb => lessonsList._lessons[parseInt(cb.dataset.idx)]);
-  if (!checkedBullets.length && !checkedLessons.length) return;
+  const corrList = document.getElementById('context-corrections-list');
+  const checkedCorrections = Array.from(corrList.querySelectorAll('.context-correction-cb:checked'))
+    .map(cb => corrList._corrections[parseInt(cb.dataset.idx)]);
+  if (!checkedBullets.length && !checkedLessons.length && !checkedCorrections.length) return;
   const statusEl = document.getElementById('context-add-status');
   try {
     setBusy(true, 'updating CLAUDE.md…');
@@ -1496,16 +1590,37 @@ document.getElementById('add-selected-context').addEventListener('click', async 
         body: JSON.stringify({ lessons: checkedLessons }),
       }));
     }
+    let corrResult = null;
+    if (checkedCorrections.length) {
+      corrResult = await api('/api/apply-corrections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ corrections: checkedCorrections }),
+      });
+    }
     await Promise.all(calls);
     const parts = [];
     if (checkedBullets.length) parts.push(checkedBullets.length + ' bullet' + (checkedBullets.length > 1 ? 's' : ''));
     if (checkedLessons.length) parts.push(checkedLessons.length + ' lesson' + (checkedLessons.length > 1 ? 's' : ''));
-    statusEl.textContent = '✓ ' + parts.join(' + ') + ' added to CLAUDE.md';
+    if (corrResult) parts.push(corrResult.applied + ' correction' + (corrResult.applied !== 1 ? 's' : ''));
+    statusEl.style.color = 'var(--muted)';
+    statusEl.textContent = '✓ ' + parts.join(' + ') + ' applied to CLAUDE.md';
+    // Some corrections may not be safely auto-applicable (0 or >1 verbatim matches) — say so honestly.
+    const manual = (corrResult && corrResult.skipped || []).filter(s => /apply by hand/.test(s.reason || ''));
+    if (manual.length) {
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent += ` · ${manual.length} correction(s) need a manual CLAUDE.md edit (` +
+        manual.map(s => `"${s.old}" ${s.reason}`).join('; ') + ')';
+    }
     list.querySelectorAll('.context-cb:checked').forEach(cb => {
       cb.closest('label').style.opacity = '0.4';
       cb.disabled = true;
     });
     lessonsList.querySelectorAll('.context-lesson-cb:checked').forEach(cb => {
+      cb.closest('label').style.opacity = '0.4';
+      cb.disabled = true;
+    });
+    corrList.querySelectorAll('.context-correction-cb:checked').forEach(cb => {
       cb.closest('label').style.opacity = '0.4';
       cb.disabled = true;
     });

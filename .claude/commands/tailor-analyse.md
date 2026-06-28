@@ -2,6 +2,9 @@
 description: Step 1 of tailor — fast analysis only, no resume build
 ---
 Use CLAUDE.md. Read the relevant companies/<slug>.md if it exists.
+Also read CLAUDE.md `## Apply/skip lessons` — generalisable patterns from past screening/process outcomes
+about which roles convert vs go silent. Factor them into the APPLY/MAYBE/SKIP verdict (e.g. if a lesson
+says domain-defined roles where the candidate lacks the domain tend to go silent, weight that into the call).
 
 JD (text or URL, optionally --cover-letter --research flags):
 $ARGUMENTS

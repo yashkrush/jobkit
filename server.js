@@ -36,6 +36,93 @@ function runClaude(prompt, timeoutMs = 480000) {
   });
 }
 
+// Parse a gate's machine marker, e.g. `<!-- SCREEN: verdict=FIX score=88 domain_zeros=8 -->`.
+function parseGateMarker(out, kind) {
+  const m = (out || '').match(new RegExp('<!--\\s*' + kind + ':\\s*([^>]*?)-->'));
+  if (!m) return null;
+  const fields = {};
+  m[1].trim().split(/\s+/).forEach(p => {
+    const i = p.indexOf('=');
+    if (i > 0) { const v = p.slice(i + 1); fields[p.slice(0, i)] = /^\d+$/.test(v) ? parseInt(v) : v; }
+  });
+  return fields;
+}
+
+// Run the two quality gates as INDEPENDENT passes — separate `claude -p` invocations, NOT the same
+// call that wrote the draft, so the verifier never grades its own writing (the whole point). They run
+// in parallel (independent of each other) and may apply their own safe fixes to the saved md. Non-fatal:
+// a gate failure or timeout never blocks returning the resume.
+async function runResumeGates(slug) {
+  const [screenR, verifyR] = await Promise.allSettled([
+    runClaude('/tailor-screen ' + slug),
+    runClaude('/tailor-verify ' + slug),
+  ]);
+  const pack = (r, kind) => r.status === 'fulfilled'
+    ? (parseGateMarker(r.value, kind) || { verdict: null, note: 'no marker emitted' })
+    : { error: r.reason.message };
+  return { screen: pack(screenR, 'SCREEN'), verify: pack(verifyR, 'VERIFY') };
+}
+
+// Does a log note / stage change look like a learnable OUTCOME or FEEDBACK (vs a routine note)?
+const OUTCOME_RE = /\b(reject|declin|unsuccessful|not (moving|proceeding|going) forward|feedback|offer|screened?\s*out|no response|ghosted|passed on|withdrawn|filled internally|advanced|moved to (the )?next|1st interview|first interview|final round)\b/i;
+function noteIsOutcome(note, stage) {
+  return OUTCOME_RE.test(note || '') || /reject|closed|offer|interview/i.test(stage || '');
+}
+
+// Parse the routed-lessons JSON from a /learn run into clean arrays + summary.
+function parseLearnOutput(out) {
+  const m = (out || '').match(/\{[\s\S]*"interview_lessons"[\s\S]*\}/);
+  if (!m) return null;
+  let parsed; try { parsed = JSON.parse(m[0]); } catch (e) { return null; }
+  const norm = a => Array.isArray(a) ? a.map(x => typeof x === 'string' ? x : (x.lesson || x.text || '')).map(s => s.trim()).filter(Boolean) : [];
+  const r = {
+    summary: out.slice(0, m.index).trim(),
+    interview_lessons: norm(parsed.interview_lessons),
+    tailoring_lessons: norm(parsed.tailoring_lessons),
+    apply_skip_lessons: norm(parsed.apply_skip_lessons),
+  };
+  r.total = r.interview_lessons.length + r.tailoring_lessons.length + r.apply_skip_lessons.length;
+  return r;
+}
+
+// Fire-and-forget: run the learning engine after an outcome is logged and STAGE the proposals to
+// output/<company>/pending-lessons.json for review. Never auto-commits to CLAUDE.md, never blocks the log.
+async function learnInBackground(company, note) {
+  try {
+    const out = await runClaude('/learn ' + company + (note ? ' ' + note : ''));
+    const r = parseLearnOutput(out);
+    if (!r || !r.total) return;   // nothing generalisable — don't stage an empty file
+    const dir = path.join(ROOT, 'output', company);
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(dir, 'pending-lessons.json'),
+      JSON.stringify({ ...r, generated: new Date().toISOString() }, null, 2));
+    console.log('[learn] staged ' + r.total + ' proposal(s) for ' + company + ' (pending approval)');
+  } catch (e) { console.error('[learn] background error:', e.message); }
+}
+
+// DETERMINISTIC scan of a submitted resume for Fabrication-log violations — does NOT rely on the LLM
+// (which proved unreliable at catching these even with full visibility). Catches e.g. a resume that
+// writes German as "B1" when the rule is "working towards B1", or reintroduces Kafka/Staff Engineer.
+function scanFabricationConflicts(text) {
+  const t = text || '';
+  const hits = [];
+  const push = (re, rule, why) => { const m = t.match(re); if (m) hits.push({ in_resume: m[0].trim().replace(/\s+/g, ' '), rule, why }); };
+  if (/german[^.\n]*\bB[12]\b/i.test(t) && !/working towards b1/i.test(t))
+    push(/german[^.\n]*\bB[12]\b[^.\n]*/i, 'German must use the fabrication-log CEFR phrasing — never a raw level on paper',
+      'Keep the mandated "working towards" phrasing; never put a raw CEFR level or exam date on a resume.');
+  push(/\bKafka\b/i, 'Event-driven stack is SQS (AWS) + Pub/Sub, not Kafka', 'Kafka is banned — the real stack is SQS.');
+  push(/\bStaff Engineer\b/i, 'Delivery Hero title is fixed: "Engineering Manager / Quality Engineering Manager"', 'Never title the role "Staff Engineer".');
+  push(/\bSpring Boot\b/i, 'Spring Boot is a banned framing', 'Not in the achievement bank.');
+  push(/DORA metrics|deployment frequency/i, 'Name CFR + Regression Reliability Index, never "DORA metrics" / "deployment frequency"', 'The bank tracks CFR + a Regression Reliability Index, not the full DORA set.');
+  push(/internal developer platform/i, 'QMI is a quality-metrics platform, not an "internal developer platform"', 'Do not relabel the QMI.');
+  return hits;
+}
+const dedupeConflicts = arr => {
+  const seen = new Set(), out = [];
+  for (const c of arr) { const k = (c.in_resume || '').toLowerCase(); if (k && !seen.has(k)) { seen.add(k); out.push(c); } }
+  return out;
+};
+
 const safeName = n => /^[a-z0-9._-]+$/i.test(n);
 
 // First-run scaffolding: ensure the data directories and an empty pipeline exist so a freshly
@@ -639,6 +726,8 @@ app.post('/api/log', async (req, res) => {
     if (!company || !note) return res.status(400).json({ error: 'company and note required' });
     const out = await runClaude('/log ' + company + ' ' + note);
     res.json({ output: out });
+    // same outcome-learning trigger as the instant Log button, so AI-logged outcomes also learn
+    if (safeName(company) && noteIsOutcome(note)) learnInBackground(company, note.trim());
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -669,7 +758,11 @@ app.post('/api/log-direct', async (req, res) => {
     if (stage) pipeline = upsertPipelineRow(pipeline, company, null, stage, today);
     await fs.writeFile(pipelinePath, pipeline);
 
-    res.json({ ok: true, entry });
+    // Respond instantly (the log must be < 2s); if this note is an outcome/feedback, learn from it in
+    // the background and stage proposals for review — never block the log on the Claude pass.
+    const learning = noteIsOutcome(note, stage);
+    res.json({ ok: true, entry, learning });
+    if (learning) learnInBackground(company, note.trim());
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -932,7 +1025,7 @@ app.post('/api/run', async (req, res) => {
 
     console.log('[/api/run] jsonMatch:', !!jsonMatch, '| savedMatch:', savedMatch ? savedMatch[1] : null);
 
-    let resumeData = null, docxFile = null, htmlFile = null, resumePreview = null, mdContent = null, mdSrcName = null;
+    let resumeData = null, docxFile = null, htmlFile = null, resumePreview = null, mdContent = null, mdSrcName = null, gates = null;
 
     if (jsonMatch) {
       try {
@@ -972,6 +1065,18 @@ app.post('/api/run', async (req, res) => {
           const stub = `# ${resumeData.slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} — ${resumeData.jd_title || 'Role'}\n\n- Stage: Tailored\n- Resume used: resume-${resumeData.slug}-${resumeData.date}.docx\n\n## Process log\n\n## Resumes sent\n`;
           await fs.writeFile(coFile, stub);
         }
+        // show tailored-but-unsent resumes in the pipeline too — but only INSERT when the company is
+        // not already there, so a re-tailor never downgrades an existing Submitted/Interview row.
+        try {
+          const pipelinePath = path.join(ROOT, 'pipeline.md');
+          const pipeline = await fs.readFile(pipelinePath, 'utf8');
+          const present = updatePipelineStage(pipeline, resumeData.slug, '__probe__') !== pipeline;
+          if (!present) {
+            const withRow = upsertPipelineRow(pipeline, resumeData.slug, resumeData.jd_title,
+              'Tailored — not yet submitted', resumeData.date);
+            await fs.writeFile(pipelinePath, withRow);
+          }
+        } catch (e) { console.error('[/api/run] pipeline upsert error:', e.message); }
       } catch (e) { console.error('[/api/run] Build error:', e.message); }
     }
 
@@ -1020,7 +1125,7 @@ app.post('/api/run', async (req, res) => {
 
     // Build the downloadable DOCX/HTML from the resume markdown — one place, so the download
     // buttons appear whenever we recovered a resume, even when the RESUME_JSON marker was absent.
-    const finalMd = mdContent || resumePreview;
+    let finalMd = mdContent || resumePreview;
     if (finalMd && finalMd.trim()) {
       if (!docxFile) {
         // RESUME_JSON was absent — derive slug/date from the recovered md filename and
@@ -1035,6 +1140,19 @@ app.post('/api/run', async (req, res) => {
           // remove the top-level copy left by the skill, if any
           if (!mdSrcName.includes('/')) await fs.unlink(path.join(ROOT, 'output', mdSrcName)).catch(() => {});
         }
+      }
+      // INDEPENDENT QUALITY GATES — run BEFORE building the downloads so a gate's safe fixes land in
+      // the DOCX/HTML the user actually gets. Separate claude passes (see runResumeGates).
+      const gateSlug = (resumeData && resumeData.slug) || (docxFile ? docxFile.split('/')[0] : null);
+      if (gateSlug) {
+        try {
+          gates = await runResumeGates(gateSlug);
+          // a gate may have edited the saved md — re-read it so downloads + preview reflect the fixes
+          const mdPath = path.join(ROOT, 'output', docxFile.replace(/\.docx$/, '.md'));
+          const reread = await fs.readFile(mdPath, 'utf8').catch(() => null);
+          if (reread && reread.trim()) { finalMd = reread; resumePreview = reread; }
+          console.log('[/api/run] gates:', JSON.stringify(gates));
+        } catch (e) { console.error('[/api/run] gates error:', e.message); }
       }
       if (docxFile) {
         try {
@@ -1078,6 +1196,8 @@ app.post('/api/run', async (req, res) => {
       html_file:      htmlFile,
       saved_cover:    savedCL ? savedCL[1] : null,
       ats,
+      screen:         gates ? gates.screen : null,
+      verify:         gates ? gates.verify : null,
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1181,8 +1301,12 @@ app.post('/api/extract-context', async (req, res) => {
     let submittedText = null, draftText = null, jdText = null;
     try {
       const files = await fs.readdir(coDir);
+      // Pick the user's SUBMITTED resume — exclude every generated/system .md so the loop never reads
+      // a report (screen-/verify-), the JD, a cover letter, the stashed draft, or the machine-tailored
+      // resume-<slug>-<date>.md as if it were the submission.
+      const GENERATED = /^(_draft|jd-|screen-|verify-|cover-letter-|pending-lessons)/;
       const subMds = files
-        .filter(f => f.endsWith('.md') && f !== '_draft.md' && !/^jd-/.test(f))
+        .filter(f => f.endsWith('.md') && !GENERATED.test(f) && !/^resume-.+-\d{6,8}\.md$/.test(f))
         .sort().reverse();
       if (subMds.length) submittedText = (await fs.readFile(path.join(coDir, subMds[0]), 'utf8')).trim();
       // Fallback for resumes uploaded before PDF support: no .md yet — extract the
@@ -1203,26 +1327,31 @@ app.post('/api/extract-context', async (req, res) => {
       if (jds.length) jdText = (await fs.readFile(path.join(coDir, jds[0]), 'utf8')).trim();
     } catch (e) {}
 
-    if (!submittedText) return res.json({ new_bullets: [], framing_lessons: [] });
+    if (!submittedText) return res.json({ new_bullets: [], framing_lessons: [], corrections: [], conflicts: [] });
 
-    const empty = { new_bullets: [], framing_lessons: [] };
+    const empty = { new_bullets: [], framing_lessons: [], corrections: [], conflicts: [] };
     const prompt = `You are improving a resume-tailoring system whose single goal is to produce a tailored resume that clears recruiter/ATS screening. Read CLAUDE.md first — especially the achievement bank, the "Positioning", "Voice rules", "Honesty rules" and "Fabrication log" sections.
 
 Below are up to three artefacts for the role at "${company}":
-${jdText ? `\n=== JOB DESCRIPTION ===\n${jdText.substring(0, 3000)}\n` : '\n(No JD captured for this role.)\n'}${draftText ? `\n=== MACHINE-TAILORED DRAFT (what /tailor produced) ===\n${draftText.substring(0, 4000)}\n` : '\n(No machine draft available — the user uploaded without tailoring in this tool.)\n'}
+${jdText ? `\n=== JOB DESCRIPTION ===\n${jdText.substring(0, 6000)}\n` : '\n(No JD captured for this role.)\n'}${draftText ? `\n=== MACHINE-TAILORED DRAFT (what /tailor produced) ===\n${draftText.substring(0, 14000)}\n` : '\n(No machine draft available — the user uploaded without tailoring in this tool.)\n'}
 === SUBMITTED RESUME (what the user actually sent after their own edits — the screening-intended source of truth) ===
-${submittedText.substring(0, 4000)}
+${submittedText.substring(0, 14000)}
 
-Produce TWO things:
+Produce THREE things:
 
 1. "new_bullets": genuinely NEW facts/achievements present in the submitted resume that are NOT already in the achievement bank and are worth reusing. Only real new facts — never rephrasings of existing bullets.
 
 2. "framing_lessons": ${draftText ? 'Compare the draft against the submitted version. ' : ''}Infer GENERALISABLE tailoring rules from how the submitted resume is positioned relative to the JD${draftText ? ', and from what the user changed, cut, reordered or re-emphasised versus the draft' : ''}. Each lesson must be ONE concise, reusable imperative rule that would make the NEXT tailored resume more likely to clear screening — about positioning, emphasis, section ordering, what to cut, tone, or keyword coverage. Make them generalisable (e.g. "When a JD is QA-titled but the role is EM-scope, lead with engineering leadership and treat quality as a differentiator"), NOT a narration of this one resume, and NOT new facts. Never propose anything that conflicts with the Honesty rules / Fabrication log. If the submitted resume and the draft are essentially the same, return [].
 
-Return raw JSON only, no markdown fences: {"new_bullets":[...],"framing_lessons":[...]}`;
+3. "corrections": facts in the SUBMITTED resume that CONTRADICT or UPDATE a fact already in the achievement bank — the source-of-truth resume now says something different from the bank (a different technology, a changed number, an updated tenure, a renamed tool). For each return an object {"old": "<the outdated fact, quoting the bank's wording as closely as possible>", "new": "<the corrected fact from the submitted resume>", "why": "<one short line>"}. These are NOT new facts and NOT rephrasings — only genuine disagreements where the bank is now out of date (e.g. bank says "Kafka" but the submitted resume says "SQS"; bank says "12+ years" but the resume says "13 years"). The submitted resume is USUALLY the source of truth — BUT NOT ALWAYS. If the submitted resume's differing value would REINTRODUCE something the Fabrication log / Honesty rules forbid (e.g. it writes German as "B1" when the rules say "working towards B1"; or a banned title/term), do NOT put it in "corrections" — the resume is the error there. Put it in "conflicts" instead. Return [] if none.
+
+4. "conflicts": places where the SUBMITTED resume violates the Fabrication log / Honesty rules / a fixed fact (the resume is likely the mistake, not the bank). For each return an object {"in_resume": "<what the resume says>", "rule": "<the rule it breaks>", "why": "<one short line, e.g. 'you are not yet B1 — keep \\"working towards B1\\"'>"}. These must NEVER be auto-applied to the bank — they are warnings for the user to fix on the resume. Return [] if none.
+
+Return raw JSON only, no markdown fences: {"new_bullets":[...],"framing_lessons":[...],"corrections":[...],"conflicts":[...]}`;
+    const detConflicts = scanFabricationConflicts(submittedText); // deterministic, runs regardless of the LLM
     const out = await runClaude(prompt);
     const m = out.match(/\{[\s\S]*\}/);
-    if (!m) return res.json(empty);
+    if (!m) return res.json({ ...empty, conflicts: detConflicts });
     try {
       const parsed = JSON.parse(m[0]);
       // The model sometimes returns objects ({bullet, note, company}) instead of plain
@@ -1233,11 +1362,21 @@ Return raw JSON only, no markdown fences: {"new_bullets":[...],"framing_lessons"
         return '';
       };
       const norm = arr => (Array.isArray(arr) ? arr.map(toStr).filter(Boolean) : []);
+      const normCorr = arr => (Array.isArray(arr) ? arr.map(c =>
+        (c && typeof c === 'object') ? { old: String(c.old || '').trim(), new: String(c.new || '').trim(), why: String(c.why || '').trim() } : null
+      ).filter(c => c && c.old && c.new) : []);
+      const normConflict = arr => (Array.isArray(arr) ? arr.map(c =>
+        (c && typeof c === 'object') ? { in_resume: String(c.in_resume || '').trim(), rule: String(c.rule || '').trim(), why: String(c.why || '').trim() } : null
+      ).filter(c => c && c.in_resume) : []);
       res.json({
         new_bullets: norm(parsed.new_bullets),
         framing_lessons: norm(parsed.framing_lessons),
+        corrections: normCorr(parsed.corrections),
+        // deterministic fab-log scan + the LLM's conflicts, so a banned reintroduction (e.g. German "B1")
+        // is caught reliably even when the model misses it
+        conflicts: dedupeConflicts(detConflicts.concat(normConflict(parsed.conflicts))),
       });
-    } catch { res.json(empty); }
+    } catch { res.json({ ...empty, conflicts: detConflicts }); }
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1278,6 +1417,90 @@ app.post('/api/add-lessons', async (req, res) => {
     }
     await fs.writeFile(claudePath, content);
     res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Run the OUTCOME-learning engine for a company and return routed lesson proposals for approval.
+app.post('/api/learn', async (req, res) => {
+  try {
+    const { company, feedback } = req.body;
+    if (!company || !safeName(company)) return res.status(400).json({ error: 'valid company required' });
+    const arg = company + (feedback && feedback.trim() ? ' ' + feedback.trim() : '');
+    const out = await runClaude('/learn ' + arg);
+    const m = out.match(/\{[\s\S]*"interview_lessons"[\s\S]*\}/);
+    let parsed = { interview_lessons: [], tailoring_lessons: [], apply_skip_lessons: [] };
+    if (m) { try { parsed = JSON.parse(m[0]); } catch (e) {} }
+    const norm = a => Array.isArray(a)
+      ? a.map(x => typeof x === 'string' ? x : (x.lesson || x.text || '')).map(s => s.trim()).filter(Boolean)
+      : [];
+    res.json({
+      summary: m ? out.slice(0, m.index).trim() : out.trim(),
+      interview_lessons: norm(parsed.interview_lessons),
+      tailoring_lessons: norm(parsed.tailoring_lessons),
+      apply_skip_lessons: norm(parsed.apply_skip_lessons),
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Append approved lessons under their consumer-specific CLAUDE.md section (routes by bucket).
+function appendLessons(content, heading, lines) {
+  if (!lines || !lines.length) return content;
+  const block = lines.map(l => '- ' + l.replace(/^[-*•]\s*/, '').trim()).join('\n');
+  if (content.includes(heading)) return content.replace(heading + '\n', heading + '\n' + block + '\n');
+  if (content.includes('## Voice rules')) return content.replace('## Voice rules', heading + '\n' + block + '\n\n## Voice rules');
+  return content + '\n\n' + heading + '\n' + block + '\n';
+}
+
+// Fetch staged (auto-learned, not-yet-approved) lesson proposals for a company.
+app.get('/api/pending-lessons/:company', async (req, res) => {
+  try {
+    const company = req.params.company;
+    if (!safeName(company)) return res.status(400).json({ error: 'bad company' });
+    const p = path.join(ROOT, 'output', company, 'pending-lessons.json');
+    const raw = await fs.readFile(p, 'utf8').catch(() => null);
+    res.json(raw ? JSON.parse(raw) : null);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/add-routed-lessons', async (req, res) => {
+  try {
+    const { interview_lessons = [], tailoring_lessons = [], apply_skip_lessons = [], company } = req.body;
+    const total = interview_lessons.length + tailoring_lessons.length + apply_skip_lessons.length;
+    if (!total) return res.status(400).json({ error: 'no lessons' });
+    const claudePath = path.join(ROOT, 'CLAUDE.md');
+    let content = await fs.readFile(claudePath, 'utf8');
+    content = appendLessons(content, '## Tailoring lessons (learned from submitted resumes)', tailoring_lessons);
+    content = appendLessons(content, '## Interview lessons (learned from interview outcomes & feedback — READ BY /prep)', interview_lessons);
+    content = appendLessons(content, '## Apply/skip lessons (learned from screening & process outcomes — READ BY /tailor-analyse)', apply_skip_lessons);
+    await fs.writeFile(claudePath, content);
+    // approved → clear the staged proposals so they aren't re-offered
+    if (company && safeName(company)) {
+      await fs.unlink(path.join(ROOT, 'output', company, 'pending-lessons.json')).catch(() => {});
+    }
+    res.json({ ok: true, added: total });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Apply approved bank CORRECTIONS — replace an outdated fact with the corrected one in CLAUDE.md.
+// Safe: only substitutes when `old` matches EXACTLY ONCE, so it never clobbers the wrong line. A
+// correction that matches 0 or many places is reported back for the user to apply by hand.
+app.post('/api/apply-corrections', async (req, res) => {
+  try {
+    const { corrections } = req.body;
+    if (!Array.isArray(corrections) || !corrections.length) return res.status(400).json({ error: 'no corrections' });
+    const claudePath = path.join(ROOT, 'CLAUDE.md');
+    let content = await fs.readFile(claudePath, 'utf8');
+    const original = content; // count matches against the ORIGINAL, so an earlier edit can't make a
+    const applied = [], skipped = []; // later ambiguous string look unique (or vice versa) mid-loop
+    for (const c of corrections) {
+      const oldS = (c.old || '').trim(), newS = (c.new || '').trim();
+      if (!oldS || !newS) { skipped.push({ ...c, reason: 'empty' }); continue; }
+      const count = original.split(oldS).length - 1;
+      if (count === 1) { content = content.replace(oldS, newS); applied.push(c); }
+      else skipped.push({ ...c, reason: count === 0 ? 'not found verbatim — apply by hand' : 'matches ' + count + ' places — apply by hand' });
+    }
+    if (applied.length) await fs.writeFile(claudePath, content);
+    res.json({ ok: true, applied: applied.length, skipped });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

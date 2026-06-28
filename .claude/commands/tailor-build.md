@@ -39,30 +39,51 @@ STEP 2 — RESUME PERFORMANCE CONTEXT
 Read companies/<slug>.md ## Resumes sent. Reason about what framing worked,
 what to change. Write 3-5 lines before drafting.
 
-STEP 3 — DRAFT FULL RESUME
-Write complete resume per the structure in CLAUDE.md. All sections.
-Do NOT print it in response prose — it is saved via RESUME_JSON and read from
-file by the UI.
+STEP 2B — RELEVANCE & EMPHASIS PLAN (do this BEFORE drafting — it is the screening lever)
+A resume is screened by an ATS AND skimmed by a human in ~6 seconds. Both must instantly see fit for
+THIS role. Before writing a single line, decide the emphasis:
+- Identify the JD's TOP 3 must-haves (the things this role is actually about, not every keyword).
+- Map each to my STRONGEST GENUINE match from the bank/base resume — name the specific evidence.
+- If a top-3 must-have has no genuine match, it is a gap (report it; never invent emphasis for it).
+- Decide the angle: EM / QA / ops/delivery lean, and the ONE-LINE title framing that signals it.
+- Plan the TOP THIRD to carry the relevance: the title line, the Profile's first sentence, and the
+  first 4-5 Core Competencies must hit those top-3 must-haves in MY words. A skimmer who reads only the
+  top third should already think "fits this role". Write these 3-5 lines of plan, then draft.
 
-WORDING RULE (governs the whole draft): Write as MYSELF, in my own standard terminology. Do NOT mirror
-the JD's phrasing, nouns, sentence shapes, or branded buzzphrases. THE ONLY MIRRORING ALLOWED: a
-genuine standard INDUSTRY term for something I actually did (e.g. "CI/CD", "TDD", "test pyramid",
-"contract testing"). The JD's distinctive framing / vendor coinages / buzzphrases (e.g.
-"Platform-as-a-Product", "developer-productivity tooling", "influence rather than mandate") are NOT
-industry-standard — never adopt them. If unsure, treat the term as JD-branded and use my own words.
-Address a requirement only when I have genuine matching experience in the base resume, the achievement
-bank, or companies/<slug>.md. Unmatched requirements are gaps to report, never phrases to paste in.
+STEP 3 — DRAFT FULL RESUME
+Write the complete resume following the locked structure in `resumes/resume-skeleton.md` (Pattern B:
+Profile → Core Competencies → Professional Experience → [Selected Projects] → Education → Technical
+Skills → Languages & Recognition). All sections. Lead with the STEP 2B emphasis. Do NOT print it in
+response prose — it is saved via RESUME_JSON and read from file by the UI.
+
+WORDING RULE (governs the whole draft) — read carefully, the old version was failing two ways at once:
+Write as MYSELF. The goal is keyword MATCH without COPYCATTING — because a human always reads the
+resume after the ATS, and obvious parroting of the JD reads as lazy and desperate to that human.
+- ALLOWED and ENCOURAGED: the genuine STANDARD INDUSTRY term for something I actually did — even if the
+  JD also uses it (e.g. "CI/CD", "TDD", "contract testing", "incident management", "observability",
+  "release management"). Standard terms are how ATS and humans both recognise real skills; use them.
+- NOT ALLOWED: lifting the JD's DISTINCTIVE phrasing — its sentence shapes, multi-word coinages, the
+  exact noun-strings, vendor/branded buzzphrases ("Platform-as-a-Product", "developer-productivity
+  tooling", "influence rather than mandate"). Mapping a JD phrase to its standard-term equivalent in MY
+  words takes thought; copying it verbatim is the lazy tell a recruiter spots.
+- THE OBVIOUSNESS TEST: if a recruiter held the JD and the resume side by side, would a line look
+  copy-pasted from the JD? If yes, it is too obvious — rewrite it into my own standard phrasing. Match
+  the CONCEPT with a standard term; never echo the JD's distinctive wording.
+- Address a requirement only when I have genuine matching experience in the base resume, the achievement
+  bank, or companies/<slug>.md. Unmatched requirements are gaps to report, never phrases to paste in.
 
 Before saving, run a quick HONESTY SELF-AUDIT and report PASS/FAIL: (a) every experience title matches
 CLAUDE.md; (b) every claim traces to a real source; (c) no achievement relabelled into a category it
 isn't; (d) no JD buzzphrase borrowed; (e) nothing from the gap list worn as if met. Fix before saving.
 
-STEP 4 — COVERAGE CHECK (concepts, not verbatim keywords)
-List the 8-10 must-have requirements as concepts, not the JD's exact phrases. For each, check whether
-the resume demonstrates that capability through my real experience, in my own words (covered / partial
-/ gap). Do NOT insert the JD's phrasing to raise the score; own-words coverage counts. Surface only
-capabilities I genuinely have. Set ats_score to the share of requirements genuinely demonstrated.
-Report: Coverage: ~X% — and treat anything not honestly coverable as a gap, not phrasing to fix.
+STEP 4 — DO NOT SELF-GRADE COVERAGE OR HONESTY HERE
+The screening gate (`/tailor-screen`, Objective 1) and the fact-check gate (`/tailor-verify`, Objective 2)
+are run by the SERVER as INDEPENDENT passes — separate `claude -p` calls AFTER this draft is saved — so a
+verifier never grades the same pass that wrote the draft. Do NOT run them here and do NOT emit a
+self-assigned ats_score; that self-grading is exactly what they replace. Your job in this step is only to
+make the independent passes' job easy: ensure every must-have you GENUINELY have is present in a standard
+term, ideally in the top third (per STEP 2B), and that nothing violates the Fabrication log. The gates
+will measure coverage, apply safe fixes, and set the real verdicts.
 
 STEP 5 — QUALITY CHECKS
 Quantification check, action verb check, 2-page cap. Fix and report each.
@@ -80,5 +101,13 @@ Then list gaps honestly.
 If --cover-letter flag present: write ~180 words in my voice, save as
 output/cover-letter-<slug>-<YYYYMMDD>.md, output SAVED_CL marker.
 
-This runs in a non-chat UI — output is displayed, not replied to. End on the deliverables and the
-honest gaps. Do NOT end by asking what to do next or offering to do more. Never end on a question.
+STEP 7 — STOP AFTER SAVE (the gates run independently, not here)
+Do NOT run `/tailor-screen` or `/tailor-verify` yourself. The server runs both as separate `claude -p`
+passes immediately after this draft is saved (genuine independence — a verifier must not grade its own
+draft), and they apply their own safe fixes to the saved md before the downloads are built. End this
+build by listing the honest gaps you already know. If you are ever invoked OUTSIDE the server (plain CLI,
+no automatic gates), then and only then run `/tailor-screen <slug>` and `/tailor-verify <slug>` as the
+two follow-up commands.
+
+This runs in a non-chat UI — output is displayed, not replied to. End on the deliverables, the verify
+verdict, and the honest gaps. Do NOT end by asking what to do next or offering to do more. Never end on a question.

@@ -251,6 +251,17 @@
         </div>
       </div>
 
+      <div id="pending-lessons-panel" hidden style="margin-bottom:16px;padding:12px 14px;border:1px solid var(--accent,#7c5cff);border-radius:8px;background:rgba(124,92,255,0.06)">
+        <div class="section-sublabel" style="margin-top:0;color:var(--accent,#7c5cff)">🧠 Learned from an outcome — review &amp; approve</div>
+        <p class="hint" style="margin-top:4px;margin-bottom:10px">Auto-learned when you logged a result. Check the lessons to add to CLAUDE.md — they're routed to /prep, /tailor, or the apply/skip call.</p>
+        <div id="pending-lessons-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px"></div>
+        <div class="row" style="margin-top:0">
+          <button class="primary btn-sm" id="pending-lessons-apply">Add checked to CLAUDE.md</button>
+          <button class="ghost btn-sm" id="pending-lessons-dismiss">Dismiss</button>
+          <span id="pending-lessons-status" style="font-size:13px;color:var(--muted)"></span>
+        </div>
+      </div>
+
       <div id="company-jd-section" hidden style="margin-bottom:16px">
         <details class="jd-details">
           <summary>
@@ -294,6 +305,11 @@
           <div id="upload-status" hidden style="margin-top:8px;padding:8px 12px;border-radius:var(--radius-sm);font-size:13px;border:1px solid var(--border)"></div>
 
           <div id="context-review" hidden style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+            <div id="context-conflicts-block" hidden style="margin-bottom:14px;padding:10px 12px;border:1px solid var(--red,#e05c5c);border-radius:8px;background:rgba(224,92,92,0.06)">
+              <div class="section-sublabel" style="margin-top:0;color:var(--red,#e05c5c)">⚠ Honesty conflicts — fix on the résumé, never learned</div>
+              <p class="hint" style="margin-top:4px;margin-bottom:8px">Your submitted résumé breaks a fabrication-log rule. These are never added to the bank — correct them on the résumé itself.</p>
+              <div id="context-conflicts-list" style="display:flex;flex-direction:column;gap:6px"></div>
+            </div>
             <div class="section-sublabel" style="margin-top:0">New context for achievement bank</div>
             <p class="hint" style="margin-top:4px;margin-bottom:10px">Review what's genuinely new. Check what you want added to CLAUDE.md.</p>
             <div id="context-bullets-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
@@ -301,6 +317,11 @@
               <div class="section-sublabel" style="margin-top:6px">Tailoring lessons (so the next resume clears screening)</div>
               <p class="hint" style="margin-top:4px;margin-bottom:10px">Learned by comparing your submitted resume against the tailored draft and the JD. Check what /tailor should remember.</p>
               <div id="context-lessons-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+            </div>
+            <div id="context-corrections-block" hidden>
+              <div class="section-sublabel" style="margin-top:6px">Bank corrections (your submitted resume disagrees with CLAUDE.md)</div>
+              <p class="hint" style="margin-top:4px;margin-bottom:10px">The submitted resume is the source of truth. Check the outdated facts to replace in CLAUDE.md.</p>
+              <div id="context-corrections-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
             </div>
             <div class="row" style="margin-top:0">
               <button class="primary btn-sm" id="add-selected-context">Add checked to CLAUDE.md</button>
