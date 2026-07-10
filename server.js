@@ -598,11 +598,21 @@ let _baseResumeTextCache = null;
 async function getBaseResumeText() {
   if (_baseResumeTextCache != null) return _baseResumeTextCache;
   const parts = [];
-  for (const f of ['resume-em.pdf', 'resume-qa.pdf']) {
-    try {
-      const buf = await fs.readFile(path.join(ROOT, 'resumes', f));
-      parts.push(await extractResumeText(buf, 'pdf'));
-    } catch (_) { /* base resume missing → skip it */ }
+  // One text per base (em, qa). Prefer the editable markdown source (resume-em.md is now
+  // the authoritative EM base), else fall back to the legacy pdf/docx — first that exists
+  // wins, so we never double-count a base. Markdown/txt read as-is; pdf/docx extracted.
+  for (const candidates of [
+    ['resume-em.md', 'resume-em.pdf', 'resume-em.docx'],
+    ['resume-qa.md', 'resume-qa.pdf', 'resume-qa.docx'],
+  ]) {
+    for (const f of candidates) {
+      try {
+        const buf = await fs.readFile(path.join(ROOT, 'resumes', f));
+        const ext = f.split('.').pop().toLowerCase();
+        parts.push((ext === 'md' || ext === 'txt') ? buf.toString('utf8') : await extractResumeText(buf, ext));
+        break; // first existing file for this base wins
+      } catch (_) { /* try next candidate */ }
+    }
   }
   _baseResumeTextCache = parts.join('\n');
   return _baseResumeTextCache;
