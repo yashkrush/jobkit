@@ -163,10 +163,23 @@ p.hint {
 }
 .pl-strategy strong { color: var(--accent); font-weight: 600; }
 
-/* ── List + calendar side-by-side ───────────── */
+/* ── List + calendar layout ─────────────────── */
 .pl-split { display: flex; align-items: flex-start; gap: 16px; }
 .pl-split .pl-list { flex: 1 1 auto; min-width: 0; }
 .pl-cal-col { flex: 0 0 344px; position: sticky; top: 16px; }
+
+/* Wide screens: lift the calendar out of the content box into the right gutter (fixed), so the
+   pipeline list takes the full width of the box. Needs ≈1680px+ to clear the centred 1020px box —
+   below that there's no room beside it, so it stays in-flow (side-by-side, then stacked on mobile). */
+@media (min-width: 1680px) {
+  .pl-cal-col {
+    position: fixed; top: 100px; left: calc(50% + 530px);
+    width: 300px; max-height: calc(100vh - 124px); overflow-y: auto;
+    flex-basis: auto; z-index: 5;
+  }
+  .pl-split .pl-list { flex: 1 1 100%; }
+  .pl-cal-col .cal { box-shadow: var(--shadow); }
+}
 @media (max-width: 760px) {
   .pl-split { flex-direction: column; }
   .pl-cal-col { flex-basis: auto; width: 100%; position: static; }

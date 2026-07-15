@@ -804,6 +804,28 @@ function closeCurrentApplication(content, stage, outcome) {
 // Best-effort "date applied" for a company, read from its companies/<slug>.md.
 // Prefers the earliest date in the "Resumes sent" section, then any resume-sent /
 // submitted log line, then the earliest date anywhere in the file.
+// Interview events that ALREADY HAPPENED, mined from a company file's process log. The pipeline
+// Stage drops the date once a process moves past "confirmed" (e.g. → "Rejected — 2nd interview"),
+// but the company log keeps the full history. Match bullets whose text says an interview actually
+// took place ("completed/attended/held/had/did the … interview/round/call") and use that bullet's
+// ISO date. Conservative: no keyword match → no event, so a date is never guessed. → [{date, label}].
+function extractInterviewEvents(md) {
+  const events = [];
+  (md || '').split('\n').forEach(line => {
+    const m = /^-\s*(20\d{2}-\d{2}-\d{2})\s*\|\s*(.+)$/.exec(line.trim());
+    if (!m) return;
+    const text = m[2];
+    const happened =
+      /\b(completed|attended|held|had|did|finished|wrapped)\b[^.]*\b(interview|round|call|screen|panel|talent talk|onsite|loop)\b/i.test(text) ||
+      /\binterview(?:ed)?\b[^.]*\b(done|completed|finished|held)\b/i.test(text);
+    if (!happened) return;
+    const r = /\b(\d(?:st|nd|rd|th))\b/i.exec(text);
+    events.push({ date: m[1], label: r ? (r[1].toLowerCase() + ' interview') : 'interview' });
+  });
+  const seen = new Set();   // one event per calendar day
+  return events.filter(e => (seen.has(e.date) ? false : (seen.add(e.date), true)));
+}
+
 function extractAppliedDate(md) {
   const dateRe = /\b(20\d{2}-\d{2}-\d{2})\b/g;
   const earliest = text => {
@@ -829,17 +851,22 @@ app.get('/api/pipeline', async (req, res) => {
   try {
     const content = await fs.readFile(path.join(ROOT, 'pipeline.md'), 'utf8');
     const appliedDates = {};
+    const interviewEvents = {};   // { slug: [{date, label}] } — past interviews mined from company logs
     try {
       const dir = path.join(ROOT, 'companies');
       const files = (await fs.readdir(dir)).filter(f => f.endsWith('.md'));
       for (const f of files) {
         try {
-          const d = extractAppliedDate(await fs.readFile(path.join(dir, f), 'utf8'));
-          if (d) appliedDates[f.replace(/\.md$/, '')] = d;
+          const md = await fs.readFile(path.join(dir, f), 'utf8');
+          const slug = f.replace(/\.md$/, '');
+          const d = extractAppliedDate(md);
+          if (d) appliedDates[slug] = d;
+          const iev = extractInterviewEvents(md);
+          if (iev.length) interviewEvents[slug] = iev;
         } catch (_) { /* skip unreadable company file */ }
       }
-    } catch (_) { /* no companies dir → empty map */ }
-    res.json({ content, appliedDates });
+    } catch (_) { /* no companies dir → empty maps */ }
+    res.json({ content, appliedDates, interviewEvents });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -26,8 +26,9 @@ let _pipelineFooter = '';
 let _pipelineFilter = 'all';
 let _pipelineSort = 'updated';
 let _pipelineSearch = '';
-let _calMonth = null;   // {y, m} currently-shown calendar month; null until first render picks a default
-let _appliedDates = {}; // { slug: 'YYYY-MM-DD' } from company files, for CSV export
+let _calMonth = null;       // {y, m} currently-shown calendar month; null until first render picks a default
+let _interviewEvents = {};  // { slug: [{date, label}] } past interviews mined from company logs (server)
+let _appliedDates = {};     // { slug: 'YYYY-MM-DD' } from company files, for CSV export
 let _activeJdText = '';
 
 function setStatus(text, cls) {
@@ -148,10 +149,35 @@ function parseInterviewEvents(rows) {
   return events;
 }
 
+// All interview events for the calendar: UPCOMING ones parsed from the pipeline Stage (above) +
+// PAST ones mined from company logs server-side (_interviewEvents) — the latter are how a completed/
+// rejected interview like checkmk still appears after its date left the Stage. Deduped by company+day.
+function collectEvents(rows) {
+  const byKey = new Map();
+  const put = e => { const k = e.slug + '|' + e.y + '-' + e.m + '-' + e.d; if (!byKey.has(k)) byKey.set(k, e); };
+  parseInterviewEvents(rows).forEach(put);
+  const rowBySlug = {};
+  (rows || []).forEach(r => { rowBySlug[slugify(r['company'] || '')] = r; });
+  Object.entries(_interviewEvents || {}).forEach(([slug, evs]) => {
+    (evs || []).forEach(ev => {
+      const dm = /(\d{4})-(\d{2})-(\d{2})/.exec(ev.date || '');
+      if (!dm) return;
+      const row = rowBySlug[slug] || {};
+      put({
+        y: +dm[1], m: +dm[2] - 1, d: +dm[3],
+        company: row['company'] || slug.replace(/-/g, ' '), role: row['role'] || '', slug,
+        stage: row['stage'] || '', time: '', label: ev.label || 'interview',
+        badge: stageBadgeClass(row['stage'] || 'gray'),
+      });
+    });
+  });
+  return [...byKey.values()];
+}
+
 // Build the month-grid calendar HTML for the currently-selected month (_calMonth), with event
 // chips on the days that have interviews. Monday-first (European). Returns an HTML string.
 function renderCalendar(rows) {
-  const events = parseInterviewEvents(rows);
+  const events = collectEvents(rows);
   const today = new Date();
   const todayKey = today.getFullYear() + '-' + today.getMonth() + '-' + today.getDate();
 
@@ -182,10 +208,12 @@ function renderCalendar(rows) {
     const isToday = cellKey === todayKey;
     const isPast = new Date(y, m, d).getTime() < new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
     const evs = byDay[d] || [];
-    const chips = evs.map(e =>
-      `<button class="cal-event ${e.badge}" data-slug="${e.slug}" type="button" title="${(e.company + ' — ' + e.stage).replace(/"/g, '&quot;')}">
-         ${e.time ? `<span class="cal-event-t">${e.time}</span>` : ''}<span class="cal-event-c">${e.company}</span>
-       </button>`).join('');
+    const chips = evs.map(e => {
+      const sub = e.time || e.label || '';
+      return `<button class="cal-event ${e.badge}" data-slug="${e.slug}" type="button" title="${(e.company + (e.stage ? ' — ' + e.stage : '')).replace(/"/g, '&quot;')}">
+         ${sub ? `<span class="cal-event-t">${sub}</span>` : ''}<span class="cal-event-c">${e.company}</span>
+       </button>`;
+    }).join('');
     cells += `<div class="cal-cell${isToday ? ' cal-today' : ''}${isPast ? ' cal-past' : ''}${evs.length ? ' cal-has' : ''}">
       <span class="cal-daynum">${d}</span>${chips}</div>`;
   }
@@ -467,8 +495,9 @@ function exportPipelineCsv() {
 
 async function loadPipeline() {
   try {
-    const { content, appliedDates } = await api('/api/pipeline');
+    const { content, appliedDates, interviewEvents } = await api('/api/pipeline');
     _appliedDates = appliedDates || {};
+    _interviewEvents = interviewEvents || {};
     renderPipeline(content);
     // Pipeline rows feed the Companies sidebar stage badges — refresh it now that they're loaded.
     if (_companyNames.length) renderCompanyList();
