@@ -209,7 +209,9 @@ function renderCalendar(rows) {
     const isPast = new Date(y, m, d).getTime() < new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
     const evs = byDay[d] || [];
     const chips = evs.map(e => {
-      const sub = e.time || e.label || '';
+      // subtitle = scheduled time for upcoming interviews; past events (no time) just show the company.
+      // Round labels are omitted — they can't be reliably read from free-text logs (multi-round bullets).
+      const sub = e.time || '';
       return `<button class="cal-event ${e.badge}" data-slug="${e.slug}" type="button" title="${(e.company + (e.stage ? ' — ' + e.stage : '')).replace(/"/g, '&quot;')}">
          ${sub ? `<span class="cal-event-t">${sub}</span>` : ''}<span class="cal-event-c">${e.company}</span>
        </button>`;
@@ -292,8 +294,13 @@ function renderPipeline(md) {
 
   _pipelineStrategy = lines.slice(0, firstTableIdx)
     .filter(l => l.trim() && !/^#/.test(l.trim())).join(' ').trim();
-  _pipelineFooter = lines.slice(lastTableIdx + 1)
-    .filter(l => l.trim() && !/^#/.test(l.trim())).join(' ').trim();
+  // Footer = only the prose between the table and the first heading after it (the "Discovery" note).
+  // Everything from the first "##" onward (e.g. the "Stage vocabulary" reference) is internal doc for
+  // the markdown file, not UI content — stop there so it isn't dumped as a run-on blob.
+  const afterTable = lines.slice(lastTableIdx + 1);
+  const headingIdx = afterTable.findIndex(l => /^#/.test(l.trim()));
+  _pipelineFooter = (headingIdx === -1 ? afterTable : afterTable.slice(0, headingIdx))
+    .filter(l => l.trim()).join(' ').trim();
   _pipelineRows = rows;
   renderPipelineView();
 }

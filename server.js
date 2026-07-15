@@ -804,25 +804,42 @@ function closeCurrentApplication(content, stage, outcome) {
 // Best-effort "date applied" for a company, read from its companies/<slug>.md.
 // Prefers the earliest date in the "Resumes sent" section, then any resume-sent /
 // submitted log line, then the earliest date anywhere in the file.
-// Interview events that ALREADY HAPPENED, mined from a company file's process log. The pipeline
-// Stage drops the date once a process moves past "confirmed" (e.g. → "Rejected — 2nd interview"),
-// but the company log keeps the full history. Match bullets whose text says an interview actually
-// took place ("completed/attended/held/had/did the … interview/round/call") and use that bullet's
-// ISO date. Conservative: no keyword match → no event, so a date is never guessed. → [{date, label}].
+// Interview events mined from a company file's process log. The pipeline Stage keeps a date only
+// while an interview is upcoming ("confirmed — <when>"); once the process moves on (→ "Rejected —
+// 2nd interview") the date survives only here. For each process-log bullet that is BOTH about an
+// interview AND in a scheduling/occurrence context, take the interview's own date — the explicit
+// date written in the bullet (DD.MM.YYYY / DD.MM.YY / "D Mon YYYY"), or, for a "completed" bullet
+// with no explicit date, the bullet's own log date. Conservative on purpose: a bullet that doesn't
+// clearly schedule/hold an interview yields nothing, so a date is never guessed (e.g. a "follow-up
+// email 2026-06-06" line is not mistaken for an interview). → [{date:'YYYY-MM-DD', label}].
+const MON = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
 function extractInterviewEvents(md) {
   const events = [];
   (md || '').split('\n').forEach(line => {
-    const m = /^-\s*(20\d{2}-\d{2}-\d{2})\s*\|\s*(.+)$/.exec(line.trim());
-    if (!m) return;
-    const text = m[2];
-    const happened =
-      /\b(completed|attended|held|had|did|finished|wrapped)\b[^.]*\b(interview|round|call|screen|panel|talent talk|onsite|loop)\b/i.test(text) ||
-      /\binterview(?:ed)?\b[^.]*\b(done|completed|finished|held)\b/i.test(text);
-    if (!happened) return;
+    const t = line.trim();
+    if (!/^-/.test(t)) return;
+    const isoBullet = /^-\s*\[?~?(20\d{2})-(\d{2})-(\d{2})/.exec(t);   // bullet's own log date
+    const text = t.replace(/^-\s*/, '');
+    const isInterview = /\b(interview|round|call|talent talk|getting-to-know|panel|onsite|loop)\b/i.test(text);
+    const context = /(confirm|book|invit|propos|schedul|complet|attend|\bheld\b|took place|on the proposed date)/i.test(text);
+    if (!isInterview || !context) return;
+    const completion = /\b(completed|attended|held|took place|wrapped)\b/i.test(text);
+
+    let y, mo, d, m;
+    if ((m = /\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})\b/.exec(text))) {          // DD.MM.YYYY / DD.MM.YY
+      d = +m[1]; mo = +m[2] - 1; y = m[3].length === 2 ? 2000 + +m[3] : +m[3];
+    } else if ((m = /\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{4})\b/i.exec(text))) {
+      d = +m[1]; mo = MON[m[2].toLowerCase()]; y = +m[3];                  // "D Mon YYYY"
+    } else if (completion && isoBullet) {                                 // completed, date only in the log-date
+      y = +isoBullet[1]; mo = +isoBullet[2] - 1; d = +isoBullet[3];
+    } else return;                                                        // no trustworthy interview date → skip
+    if (mo == null || mo < 0 || mo > 11 || d < 1 || d > 31) return;
+
     const r = /\b(\d(?:st|nd|rd|th))\b/i.exec(text);
-    events.push({ date: m[1], label: r ? (r[1].toLowerCase() + ' interview') : 'interview' });
+    const date = y + '-' + String(mo + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    events.push({ date, label: r ? (r[1].toLowerCase() + ' interview') : 'interview' });
   });
-  const seen = new Set();   // one event per calendar day
+  const seen = new Set();   // one event per calendar day per company
   return events.filter(e => (seen.has(e.date) ? false : (seen.add(e.date), true)));
 }
 
