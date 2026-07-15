@@ -388,6 +388,9 @@ p.hint {
   white-space: nowrap;
   flex-shrink: 0;
   margin-top: 2px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .stage-badge.blue   { background: var(--accent-2-dim); color: var(--accent-2); border: 1px solid rgba(47,124,246,.28); }
 .stage-badge.teal   { background: var(--accent-dim);   color: var(--accent);   border: 1px solid rgba(109,74,255,.28); }

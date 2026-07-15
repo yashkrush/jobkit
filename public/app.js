@@ -75,6 +75,16 @@ function stageBadgeClass(stage) {
   }
 }
 
+// Short label for the stage badge — the free-text Stage can carry a long scheduling tail
+// (e.g. "1st interview confirmed — Talent Talk Tue 21.07 13:30–14:00 (Berlin)") that overflows
+// the card. Drop the "confirmed — <when>" detail (it's already in the calendar + Next line);
+// keep the round. Everything else is already short/canonical, returned as-is.
+function shortStage(stage) {
+  const s = (stage || '').trim();
+  const m = s.match(/^(.*?interview)\s+confirmed\b/i);   // "Nth interview confirmed — …" → "Nth interview"
+  return m ? m[1].trim() : s;
+}
+
 // Single-funnel stage grouping: each company sits in exactly one current stage.
 // Order matters — assessments are caught before generic "interview"; recruiter calls count as interviewing.
 function stageCategory(stage) {
@@ -348,7 +358,7 @@ function renderPipelineView() {
         ${staleLine}
       </div>
       <div class="pl-side">
-        <span class="stage-badge ${badge}">${stage}</span>
+        <span class="stage-badge ${badge}" title="${stage.replace(/"/g, '&quot;')}">${shortStage(stage)}</span>
         ${updated ? `<span class="pl-updated">${updated}</span>` : ''}
       </div>
     </div>`;
