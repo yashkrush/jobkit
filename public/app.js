@@ -26,6 +26,7 @@ let _pipelineFooter = '';
 let _pipelineFilter = 'all';
 let _pipelineSort = 'updated';
 let _pipelineSearch = '';
+let _calMonth = null;   // {y, m} currently-shown calendar month; null until first render picks a default
 let _appliedDates = {}; // { slug: 'YYYY-MM-DD' } from company files, for CSV export
 let _activeJdText = '';
 
@@ -104,6 +105,132 @@ function staleDays(row) {
   return d !== null && d >= STALE_DAYS ? d : null;
 }
 
+// ── INTERVIEW CALENDAR ────────────────────────────────────────────────────────
+// Interview dates aren't a structured field — they live as free text in the Stage column
+// (e.g. "1st interview confirmed — Mon 20.07 13:30"). Parse a DD.MM [HH:MM] out of the Stage
+// (falling back to Next action) for rows that are actually at an interview stage. Any row without
+// a parseable date is SKIPPED — never guess a date. Year comes from the date itself, else the
+// row's Updated year, else the current year.
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function parseInterviewEvents(rows) {
+  const events = [];
+  (rows || []).forEach(r => {
+    const stage = r['stage'] || '';
+    if (stageCategory(stage) !== 'interviewing') return;
+    const text = stage + '  ' + (r['next action'] || '');
+    const dm = /\b(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?\b/.exec(text);
+    if (!dm) return;
+    const day = +dm[1], month = +dm[2];
+    if (month < 1 || month > 12 || day < 1 || day > 31) return;
+    let year;
+    if (dm[3]) year = dm[3].length === 2 ? 2000 + +dm[3] : +dm[3];
+    else { const um = /(\d{4})-\d{2}-\d{2}/.exec(r['updated'] || ''); year = um ? +um[1] : new Date().getFullYear(); }
+    const date = new Date(year, month - 1, day);
+    if (isNaN(date)) return;
+    const tm = /\b(\d{1,2}):(\d{2})(?:\s*[–\-]\s*(\d{1,2}):(\d{2}))?/.exec(text);
+    const time = tm ? (tm[1].padStart(2, '0') + ':' + tm[2] + (tm[3] ? '–' + tm[3].padStart(2, '0') + ':' + tm[4] : '')) : '';
+    events.push({
+      y: year, m: month - 1, d: day, key: year + '-' + (month - 1) + '-' + day,
+      company: r['company'] || '', role: r['role'] || '', stage, time,
+      slug: slugify(r['company'] || ''), badge: stageBadgeClass(stage),
+    });
+  });
+  return events;
+}
+
+// Build the month-grid calendar HTML for the currently-selected month (_calMonth), with event
+// chips on the days that have interviews. Monday-first (European). Returns an HTML string.
+function renderCalendar(rows) {
+  const events = parseInterviewEvents(rows);
+  const today = new Date();
+  const todayKey = today.getFullYear() + '-' + today.getMonth() + '-' + today.getDate();
+
+  // First render: default to the month of the next upcoming interview, else the latest one, else this month.
+  if (!_calMonth) {
+    const upcoming = events
+      .map(e => ({ e, t: new Date(e.y, e.m, e.d).getTime() }))
+      .filter(x => x.t >= new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime())
+      .sort((a, b) => a.t - b.t)[0];
+    const latest = events.map(e => ({ e, t: new Date(e.y, e.m, e.d).getTime() })).sort((a, b) => b.t - a.t)[0];
+    const pick = (upcoming || latest || null);
+    _calMonth = pick ? { y: pick.e.y, m: pick.e.m } : { y: today.getFullYear(), m: today.getMonth() };
+  }
+  const { y, m } = _calMonth;
+
+  // group events by day-of-month for this shown month
+  const byDay = {};
+  events.filter(e => e.y === y && e.m === m).forEach(e => { (byDay[e.d] = byDay[e.d] || []).push(e); });
+  const monthCount = Object.values(byDay).reduce((n, a) => n + a.length, 0);
+
+  const firstDow = (new Date(y, m, 1).getDay() + 6) % 7; // Mon=0 … Sun=6
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+  let cells = '';
+  for (let i = 0; i < firstDow; i++) cells += '<div class="cal-cell cal-empty"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const cellKey = y + '-' + m + '-' + d;
+    const isToday = cellKey === todayKey;
+    const isPast = new Date(y, m, d).getTime() < new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    const evs = byDay[d] || [];
+    const chips = evs.map(e =>
+      `<button class="cal-event ${e.badge}" data-slug="${e.slug}" type="button" title="${(e.company + ' — ' + e.stage).replace(/"/g, '&quot;')}">
+         ${e.time ? `<span class="cal-event-t">${e.time}</span>` : ''}<span class="cal-event-c">${e.company}</span>
+       </button>`).join('');
+    cells += `<div class="cal-cell${isToday ? ' cal-today' : ''}${isPast ? ' cal-past' : ''}${evs.length ? ' cal-has' : ''}">
+      <span class="cal-daynum">${d}</span>${chips}</div>`;
+  }
+
+  const caption = monthCount
+    ? `${monthCount} interview${monthCount > 1 ? 's' : ''} this month`
+    : 'No interviews this month';
+
+  return `<div class="cal" id="pl-calendar">
+    <div class="cal-head">
+      <div class="cal-title">📅 ${MONTHS[m]} ${y} <span class="cal-caption">· ${caption}</span></div>
+      <div class="cal-nav">
+        <button class="cal-btn" id="cal-prev" type="button" aria-label="Previous month">‹</button>
+        <button class="cal-btn cal-today-btn" id="cal-today" type="button">Today</button>
+        <button class="cal-btn" id="cal-next" type="button" aria-label="Next month">›</button>
+      </div>
+    </div>
+    <div class="cal-grid cal-dow">
+      ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => `<div class="cal-dowc">${d}</div>`).join('')}
+    </div>
+    <div class="cal-grid cal-days">${cells}</div>
+  </div>`;
+}
+
+// Wire the calendar's month-nav + event chips. Called from renderPipelineView's bind section.
+function bindCalendar(container) {
+  const prev = container.querySelector('#cal-prev');
+  const next = container.querySelector('#cal-next');
+  const todayBtn = container.querySelector('#cal-today');
+  const step = delta => {
+    if (!_calMonth) return;
+    let m = _calMonth.m + delta, y = _calMonth.y;
+    if (m < 0) { m = 11; y--; } else if (m > 11) { m = 0; y++; }
+    _calMonth = { y, m };
+    renderPipelineView();
+  };
+  if (prev) prev.addEventListener('click', () => step(-1));
+  if (next) next.addEventListener('click', () => step(1));
+  if (todayBtn) todayBtn.addEventListener('click', () => {
+    const t = new Date();
+    _calMonth = { y: t.getFullYear(), m: t.getMonth() };
+    renderPipelineView();
+  });
+  container.querySelectorAll('.cal-event[data-slug]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const slug = chip.dataset.slug;
+      switchToTab('companies');
+      setTimeout(() => {
+        const coCard = document.querySelector('.co-card[data-name="' + slug + '"]');
+        if (coCard) coCard.click(); else activateCompany(slug);
+      }, 50);
+    });
+  });
+}
+
 function renderPipeline(md) {
   const container = document.getElementById('pipeline-view');
   const lines = md.split('\n');
@@ -157,6 +284,9 @@ function renderPipelineView() {
   if (_pipelineStrategy) {
     html += `<div class="pl-strategy">${_pipelineStrategy.replace(/(Jun.?Aug|late Sep[a-z]*)/gi, '<strong>$1</strong>')}</div>`;
   }
+
+  // interview calendar (parsed from the same rows; independent of the filter/search below)
+  html += renderCalendar(rows);
 
   const filters = [['all','All'],['submitted','Submitted'],['screening','Screening'],['interviewing','Interviewing'],['offer','Offers'],['closed','Closed']];
   html += `<div class="pl-controls">
@@ -230,6 +360,7 @@ function renderPipelineView() {
   container.innerHTML = html;
 
   // bind controls
+  bindCalendar(container);
   container.querySelectorAll('.pl-chip').forEach(chip =>
     chip.addEventListener('click', () => { _pipelineFilter = chip.dataset.filter; renderPipelineView(); }));
   const sortEl = container.querySelector('#pl-sort');

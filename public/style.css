@@ -163,6 +163,70 @@ p.hint {
 }
 .pl-strategy strong { color: var(--accent); font-weight: 600; }
 
+/* ── Interview calendar ─────────────────────── */
+.cal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 12px 14px 14px;
+  margin-bottom: 14px;
+}
+.cal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap; margin-bottom: 10px;
+}
+.cal-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.cal-caption { font-weight: 500; font-size: 12px; color: var(--muted); }
+.cal-nav { display: flex; gap: 6px; }
+.cal-btn {
+  min-width: 30px; height: 28px; padding: 0 9px;
+  font-size: 15px; line-height: 1; font-weight: 600;
+  background: var(--surface); color: var(--text-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  cursor: pointer; transition: all .15s;
+}
+.cal-btn:hover { color: var(--accent); border-color: rgba(109,74,255,.30); background: var(--accent-dim); }
+.cal-today-btn { font-size: 12px; font-weight: 600; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-dow { margin-bottom: 4px; }
+.cal-dowc {
+  text-align: center; font-size: 11px; font-weight: 600;
+  color: var(--muted); text-transform: uppercase; letter-spacing: .04em; padding: 2px 0;
+}
+.cal-cell {
+  min-height: 62px; padding: 4px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle); background: var(--surface-2);
+  display: flex; flex-direction: column; gap: 3px;
+}
+.cal-cell.cal-empty { background: transparent; border-color: transparent; }
+.cal-daynum { font-size: 11.5px; font-weight: 600; color: var(--text-2); padding: 1px 2px; }
+.cal-cell.cal-past { opacity: .55; }
+.cal-cell.cal-has { background: var(--surface); border-color: var(--border); }
+.cal-today { border-color: var(--accent) !important; box-shadow: inset 0 0 0 1px var(--accent); }
+.cal-today .cal-daynum {
+  color: #fff; background: var(--accent); border-radius: 20px;
+  width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center;
+}
+.cal-event {
+  width: 100%; text-align: left; cursor: pointer;
+  padding: 3px 5px; border-radius: 5px; font-size: 10.5px; line-height: 1.25;
+  display: flex; flex-direction: column; overflow: hidden; transition: filter .15s;
+}
+.cal-event:hover { filter: brightness(.96); }
+.cal-event-t { font-weight: 700; font-size: 9.5px; opacity: .85; }
+.cal-event-c { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-event.blue  { background: var(--accent-2-dim); color: var(--accent-2); border: 1px solid rgba(47,124,246,.28); }
+.cal-event.teal  { background: var(--accent-dim);   color: var(--accent);   border: 1px solid rgba(109,74,255,.28); }
+.cal-event.amber { background: var(--amber-dim);    color: var(--amber);    border: 1px solid rgba(217,119,6,.30); }
+.cal-event.green { background: var(--green-dim);    color: var(--green);    border: 1px solid rgba(7,151,106,.28); }
+.cal-event.red   { background: var(--red-dim);      color: var(--red);      border: 1px solid rgba(226,49,69,.28); }
+.cal-event.gray  { background: var(--surface-3);    color: var(--text-2);   border: 1px solid var(--border); }
+@media (max-width: 560px) {
+  .cal-cell { min-height: 50px; }
+  .cal-event-c { font-size: 9.5px; }
+}
+
 /* Filter / search / sort controls */
 .pl-controls {
   display: flex;
