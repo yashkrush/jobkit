@@ -1380,6 +1380,7 @@ document.getElementById('tailor-run').addEventListener('click', async () => {
   let flags = '';
   if (document.getElementById('tailor-cover-letter').checked) flags += ' --cover-letter';
   if (document.getElementById('tailor-research').checked)     flags += ' --research';
+  if (document.getElementById('tailor-senior').checked)       flags += ' --senior';
 
   const facts = document.getElementById('tailor-facts').value.trim();
   const factsBlock = facts ? '\n\n--known-facts\n<<<KNOWN_FACTS\n' + facts + '\nKNOWN_FACTS' : '';
@@ -1517,7 +1518,7 @@ $('#prep-run').addEventListener('click', () => {
   }
   const dl = document.getElementById('prep-dl');
   if (dl) dl.hidden = true;
-  runCommand({ url: '/api/prep', body: { company, round },
+  runCommand({ url: '/api/prep', body: { company, round, senior: document.getElementById('prep-senior').checked },
     outId: '#prep-out', outRawId: '#prep-out-raw',
     wrapId: '#prep-out-wrap', busyLabel: 'prepping…',
     progress: {

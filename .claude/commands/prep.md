@@ -29,6 +29,13 @@ Company + round (e.g. "paymenttools, recruiter round" or "affinidi, system desig
 
 $ARGUMENTS
 
+SENIOR-TRACK — if the input contains `--senior`: prep for a senior role. Ground on the **Senior-track
+bucket** in CLAUDE.md ("## Senior-track framing") and `resumes/resume-senior-em.md` (not the standard base).
+Lead the opener, stories and altitude on **managing managers** — developing the 2 EMs, org design,
+calibration across teams, cross-team org leadership, strategy — with the ~22-engineer org as the scope
+headline. Keep the DH title as-is (surface scope, never a title Yash doesn't hold). Everything else in this
+pack still applies; the manager-of-managers tenure is not hardcoded — phrase it flexibly to the round.
+
 ## Read everything first — answer only from this
 - CLAUDE.md — positioning, achievement bank, voice, comp/notice/leverage rules.
 - CLAUDE.md `## Interview lessons` — cross-company learnings from PAST interview outcomes/feedback.

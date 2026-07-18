@@ -6,8 +6,19 @@ special attention to "## Resumes sent" (what was tried before and how it perform
 Read the matching resume PDF from resumes/ — both were built by Claude so you know
 the full structure and can rebuild cleanly.
 
-Arguments: JD text or URL, optionally with --cover-letter and/or --research flags.
+Arguments: JD text or URL, optionally with --cover-letter, --research, and/or --senior flags.
 $ARGUMENTS
+
+SENIOR-TRACK FLAG — if $ARGUMENTS contains `--senior`:
+Build from the **Senior-track bucket** in CLAUDE.md ("## Senior-track framing"). Use the base résumé
+`resumes/resume-senior-em.md` (NOT resume-em.md / resume-qa.md), foreground the manager-of-managers scope
+(the ~22-engineer org; 2 EMs + platform leads as direct reports), and lead at org-leadership altitude.
+TITLE LOCK still applies — never write "Senior EM" / "Director" as a held title; surface SCOPE, not a title.
+Every hard rule and gate below still applies: the senior résumé must stay backable. Do NOT hardcode the
+manager-of-managers tenure — phrase it flexibly to the JD.
+If `--senior` is ABSENT but the JD's scope clearly reads senior (managing managers / org leadership /
+multi-team), add ONE line at the top of Step 9: "This JD reads as senior-scope — consider re-running with
+the Senior-track profile." A suggestion only; never switch profiles on your own.
 
 KNOWN FACTS — user-supplied trusted input:
 If $ARGUMENTS contains a block delimited by `<<<KNOWN_FACTS` and `KNOWN_FACTS` (it follows a

@@ -915,10 +915,10 @@ app.put('/api/companies/:name', async (req, res) => {
 // --- command endpoints (spawn claude -p) -----------------------------------
 app.post('/api/prep', async (req, res) => {
   try {
-    const { company, round } = req.body;
+    const { company, round, senior } = req.body;
     if (!company || !round) return res.status(400).json({ error: 'company and round required' });
     if (!safeName(company)) return res.status(400).json({ error: 'bad company name' });
-    const out = await runClaude('/prep ' + company + ', ' + round);
+    const out = await runClaude('/prep ' + company + ', ' + round + (senior ? ' --senior' : ''));
     // Save the prep into the company's output folder so it accumulates and is downloadable,
     // and so future preps can read prior ones. Never block the response on a save failure.
     let prep_file = null;
