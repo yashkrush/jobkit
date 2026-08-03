@@ -592,6 +592,7 @@ button.ghost:hover { background: var(--surface-2); color: var(--text); }
 .ats-badge.green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(7,151,106,.28); }
 .ats-badge.amber { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(217,119,6,.30); }
 .ats-badge.red   { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(226,49,69,.28); }
+.ats-ok { color: var(--green); font-weight: 600; }
 
 /* ── DOWNLOAD BUTTONS ────────────────────── */
 .btn-dl {

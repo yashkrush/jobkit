@@ -14,7 +14,11 @@
 // Extending it: add an entry to SKILLS. Each entry is [Display, [aliases…]] where
 // aliases are lowercase surface forms (acronyms, synonyms, spellings) that all map
 // to the one display term. Matching is whole-token (boundary-aware) and handles
-// simple plurals automatically, so add the base form, not every inflection.
+// simple plurals automatically. It does NOT auto-stem verb inflections (-ed/-ing)
+// or noun swaps (manager↔management), because a blanket rule mis-fires (e.g. "going"
+// → Go, "reacting" → React), and a false keyword match is worse than a missed one
+// for an honesty-first tool. So for a verb/role term, list the surface forms a resume
+// actually uses as explicit aliases (mentor/mentored, program manager/management).
 
 function atsNormalize(s) {
   return String(s || '').toLowerCase()
@@ -177,16 +181,16 @@ const SKILLS = [
   ['Engineering Manager', ['engineering manager', 'engineering management']],
   ['People Management', ['people management', 'line management', 'managing engineers']],
   ['Team Leadership', ['team leadership', 'technical leadership', 'leading teams']],
-  ['Mentoring', ['mentoring', 'mentor', 'mentorship']],
-  ['Coaching', ['coaching', 'coach']],
-  ['Hiring', ['hiring', 'recruiting', 'recruitment', 'attracting talent']],
+  ['Mentoring', ['mentoring', 'mentor', 'mentored', 'mentorship']],
+  ['Coaching', ['coaching', 'coach', 'coached']],
+  ['Hiring', ['hiring', 'hired', 'recruiting', 'recruited', 'recruit', 'recruitment', 'attracting talent']],
   ['Performance Management', ['performance management', 'performance review']],
   ['Career Development', ['career development', 'career growth', 'career progression']],
   ['Cross-Functional Collaboration', ['cross-functional', 'cross functional']],
   ['Stakeholder Management', ['stakeholder management', 'stakeholders']],
   ['Delivery Management', ['delivery management', 'software delivery', 'delivery']],
   ['Project Management', ['project management', 'project planning']],
-  ['Program Management', ['program management', 'programme management']],
+  ['Program Management', ['program management', 'programme management', 'program manager', 'programme manager']],
   ['Technical Strategy', ['technical strategy', 'technical vision', 'technical direction']],
   ['Product Strategy', ['product strategy', 'product goals']],
   ['Risk Management', ['risk management', 'risk mitigation']],

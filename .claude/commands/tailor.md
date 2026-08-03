@@ -20,12 +20,40 @@ If `--senior` is ABSENT but the JD's scope clearly reads senior (managing manage
 multi-team), add ONE line at the top of Step 9: "This JD reads as senior-scope — consider re-running with
 the Senior-track profile." A suggestion only; never switch profiles on your own.
 
+TPM LANE FLAG — if $ARGUMENTS contains `--tpm`:
+Build from the **TPM / Technical Program Manager bucket** in CLAUDE.md ("## TPM / Technical Program Manager
+framing"). Use the base résumé `resumes/resume-tpm.md` (NOT resume-em.md / resume-qa.md). Foreground cross-team
+programme & delivery management, dependency/risk management, stakeholder & Product partnership, process definition,
+and data-driven execution — with the market migrations across 10+ squads as the flagship story. Reframe the QMI /
+CFR / Regression-Reliability / TDD-as-DoD / exploratory-testing work as programme-delivery and metrics signals, NOT
+as "quality" (mirror the Operations lesson). People-management is a PLUS here — supporting depth, not the headline.
+In Step 4, REPLACE the QA/test technical-skills categories with programme-oriented ones (as in resume-tpm.md):
+"Programme & Delivery", "Data & Metrics", "Tooling", "Technical Breadth (leadership)" — do NOT emit Test Automation /
+Device & Compatibility categories for this lane. TITLE LOCK still applies — the DH experience title stays
+"Engineering Manager / Quality Engineering Manager"; only the headline title line is TPM-tuned. Never fabricate a
+"Program Manager" title Yash never held, and never claim PM frameworks/certs (RAID logs, RACI, PMP, SAFe) or PM
+tooling not in the base/bank. Every hard rule and gate below still applies. If `--tpm` and `--senior` are BOTH
+present, `--tpm` wins (it is the more specific lane the user selected).
+If `--tpm` is ABSENT but the JD is clearly a program/project-management role (per the TPM bucket's scope test),
+add ONE line at the top of Step 9: "This JD reads as programme-management scope — consider re-running with the TPM
+profile." A suggestion only; never switch profiles on your own.
+
 KNOWN FACTS — user-supplied trusted input:
 If $ARGUMENTS contains a block delimited by `<<<KNOWN_FACTS` and `KNOWN_FACTS` (it follows a
 `--known-facts` flag), everything inside it is asserted true by the candidate — facts they know
 that are not yet in the achievement bank. Treat these EXACTLY like the achievement bank: trusted, usable
 verbatim or rephrased, NOT subject to the fabrication guard below. Strip this block out of the JD
 text before parsing the JD in Step 1. Use these facts wherever they genuinely match the JD.
+
+SAME-PAGE CONTRACT — Check Match, Tailor and Prep are ONE decision, not three:
+Build in the SAME lane Check Match (/tailor-analyse) routed this JD to, and honour the SAME honest fit
+that verdict was based on. If Check Match returned APPLY, the fit is real on Yash's actual skills — so
+you must NOT manufacture a frame to reach it. If it was MAYBE-with-a-gap, that gap is REPORTED in Step 9,
+never worn in the body (HARD RULE 5). Concretely: when the JD's core identity is hands-on / builder-EM
+("senior IC before management", "review code with a critical eye", "proximity to the codebase", "strong
+hands-on mindset working daily"), do NOT invent a "Hands-on technical leadership" competency or "stays
+close to the code" flourish to screen in — keep the framing at leadership/direction altitude and let the
+gap be a gap. The resume Tailor ships and the gaps Prep scripts must match the verdict Check Match gave.
 
 FABRICATION GUARD — read before doing anything else:
 Read CLAUDE.md section "## Fabrication log" if it exists. These are facts previously flagged as

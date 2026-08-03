@@ -36,6 +36,38 @@ calibration across teams, cross-team org leadership, strategy — with the ~22-e
 headline. Keep the DH title as-is (surface scope, never a title Yash doesn't hold). Everything else in this
 pack still applies; the manager-of-managers tenure is not hardcoded — phrase it flexibly to the round.
 
+TPM LANE — if the input contains `--tpm`: prep for a **(Senior) Technical Program Manager / Program Manager**
+round. Ground on the **TPM bucket** in CLAUDE.md ("## TPM / Technical Program Manager framing") and
+`resumes/resume-tpm.md` (or the submitted TPM résumé if one exists). Round types differ from EM — prep what a
+TPM loop actually tests:
+- **Programme / delivery scenario (case)** — the core TPM round. A messy multi-team programme (slipping timeline,
+  a blocking cross-team dependency, competing priorities, a launch at risk). Prep a structured way to talk through
+  it: clarify scope & goal → map stakeholders & dependencies → surface risks → drive to a plan → communicate. Use
+  the **market migrations across 10+ squads** as the primary worked example, told as a programme (not a quality story).
+- **Stakeholder & influence-without-authority** — aligning teams you don't manage, escalation, managing up, saying no.
+- **Prioritisation & trade-offs** — how to sequence work, cut scope, protect a date.
+- **Metrics / status** — how you track programme health and report it (tie to QMI / CFR / Regression-Reliability as
+  data-driven delivery visibility, framed as programme signals, not "quality").
+Lead the opener and stories on programme delivery, cross-team coordination, and stakeholder work; hold quality/technical
+detail as backup depth. People-management is a PLUS to mention, not the headline. The "not hands-on coder / system-design
+beginner" gap is far less exposed here — but if the loop has a genuine technical/system round, still handle it honestly
+per the altitude guard.
+**STUDY COMPONENT (important — this lane is newer ground for Yash):** in §5b, include a plain-language primer of the
+TPM vocabulary and frameworks he should recognise and be able to speak to even where he hasn't formally used them —
+e.g. RAID logs (Risks/Assumptions/Issues/Dependencies), RACI, dependency & critical-path management, risk registers,
+stakeholder mapping, roadmapping, prioritisation frameworks (RICE / MoSCoW / weighted-shortest-job-first), programme vs
+project vs product, Agile-at-scale basics. One honest line each: what it is · how it maps to what he's actually done.
+NEVER coach him to claim he formally ran these if he didn't — the honest stance is "I know the concept and did the
+equivalent in my own way." This §5b is fuller than usual for the TPM lane; give him real things to study this week.
+
+## Same-page contract — Check Match, Tailor and Prep are ONE decision
+Prep the SAME lane Check Match routed this JD to and Tailor built in — don't silently re-lane it. The
+§5 gaps are the SAME honest gaps Check Match named and Tailor reported (never wore): build the scripts
+around exactly those, don't invent new ones or paper over the real one. If the role is a hands-on /
+builder-EM archetype (Check Match would have flagged it MAYBE-eyes-open), treat the hands-on gap as the
+central risk of the round — an honest "here's what hands-on means for me, here's where my value is" script
+at leadership altitude, never a claim of daily coding. One decision, three tabs; keep them aligned.
+
 ## Read everything first — answer only from this
 - CLAUDE.md — positioning, achievement bank, voice, comp/notice/leverage rules.
 - CLAUDE.md `## Interview lessons` — cross-company learnings from PAST interview outcomes/feedback.

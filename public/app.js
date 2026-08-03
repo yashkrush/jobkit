@@ -1143,7 +1143,7 @@ function parseATSScore(text) {
   return null;
 }
 
-function showATSBadge(score, ats) {
+function showATSBadge(score, ats, screen) {
   const el = $('#ats-badge');
   const miss = $('#ats-missing');
   if (score === null || score === undefined) {
@@ -1154,16 +1154,41 @@ function showATSBadge(score, ats) {
   el.textContent = 'ATS ' + score + '%';
   el.className = 'ats-badge ' + (score >= 85 ? 'green' : score >= 70 ? 'amber' : 'red');
   el.hidden = false;
-  // Show which JD keywords are missing — the actionable half of a deterministic score.
-  if (miss) {
-    const missing = (ats && ats.missing) || [];
-    if (missing.length) {
-      el.title = 'Matched ' + (ats.matched ? ats.matched.length : 0) + '/' + ats.keyword_count + ' JD keywords';
-      miss.textContent = 'Missing keywords: ' + missing.slice(0, 12).join(', ') + (missing.length > 12 ? '…' : '');
+  if (!miss) return;
+
+  // The raw keyword-miss list mixes three things: honest domain gaps that must NOT be
+  // added, scorer quirks, and genuinely-addable terms. Only the last is worth acting on,
+  // and the screen gate already separates them: `achievable_misses` counts the terms Yash
+  // truly has but the resume left out. So we trust the gate, not the raw % — the alarm only
+  // fires when the gate says there's a real, honest gap to close.
+  if (screen && screen.verdict) {
+    const actionable = screen.verdict === 'SCREEN-RISK' || (screen.achievable_misses || 0) > 0;
+    el.title = 'Screen gate: ' + screen.verdict +
+      ' · matched ' + (ats && ats.matched ? ats.matched.length : 0) + '/' + (ats ? ats.keyword_count : 0) + ' JD keywords';
+    if (actionable) {
+      const missing = (ats && ats.missing) || [];
+      miss.className = 'hint';
+      miss.textContent = 'Screens: ' + screen.verdict + ' — ' + (screen.achievable_misses || '') +
+        ' addable gap(s). Candidates: ' + missing.slice(0, 12).join(', ') +
+        (missing.length > 12 ? '…' : '') + ' (skip any you genuinely lack).';
       miss.hidden = false;
     } else {
-      miss.hidden = true;
+      miss.className = 'hint ats-ok';
+      miss.textContent = '✓ Screens: ' + screen.verdict + ' — no honest keyword gaps to act on.';
+      miss.hidden = false;
     }
+    return;
+  }
+
+  // No screen-gate data (gate skipped or failed) — fall back to the raw miss list as an FYI.
+  const missing = (ats && ats.missing) || [];
+  if (missing.length) {
+    el.title = 'Matched ' + (ats.matched ? ats.matched.length : 0) + '/' + ats.keyword_count + ' JD keywords';
+    miss.className = 'hint';
+    miss.textContent = 'Missing keywords: ' + missing.slice(0, 12).join(', ') + (missing.length > 12 ? '…' : '');
+    miss.hidden = false;
+  } else {
+    miss.hidden = true;
   }
 }
 
@@ -1381,6 +1406,7 @@ document.getElementById('tailor-run').addEventListener('click', async () => {
   if (document.getElementById('tailor-cover-letter').checked) flags += ' --cover-letter';
   if (document.getElementById('tailor-research').checked)     flags += ' --research';
   if (document.getElementById('tailor-senior').checked)       flags += ' --senior';
+  if (document.getElementById('tailor-tpm').checked)          flags += ' --tpm';
 
   const facts = document.getElementById('tailor-facts').value.trim();
   const factsBlock = facts ? '\n\n--known-facts\n<<<KNOWN_FACTS\n' + facts + '\nKNOWN_FACTS' : '';
@@ -1424,7 +1450,7 @@ document.getElementById('tailor-run').addEventListener('click', async () => {
     const rawEl = document.getElementById('tailor-out-raw');
     if (rawEl) rawEl.value = d.output || '';
     // Deterministic ATS score from the server; fall back to the legacy text-scrape only if absent.
-    if (d.ats && typeof d.ats.score === 'number') showATSBadge(d.ats.score, d.ats);
+    if (d.ats && typeof d.ats.score === 'number') showATSBadge(d.ats.score, d.ats, d.screen);
     else showATSBadge(parseATSScore(d.output || ''));
     // auto-open analysis section when there's content
     if (d.output) {
@@ -1505,6 +1531,14 @@ document.getElementById('tailor-run').addEventListener('click', async () => {
   }
 });
 
+// Senior-track and TPM are distinct lanes — never both at once. Checking one clears the other.
+[['tailor-senior','tailor-tpm'], ['prep-senior','prep-tpm']].forEach(([a, b]) => {
+  const ea = document.getElementById(a), eb = document.getElementById(b);
+  if (!ea || !eb) return;
+  ea.addEventListener('change', () => { if (ea.checked) eb.checked = false; });
+  eb.addEventListener('change', () => { if (eb.checked) ea.checked = false; });
+});
+
 $('#prep-run').addEventListener('click', () => {
   const company = $('#prep-company').value;
   const round = $('#prep-round').value.trim();
@@ -1518,7 +1552,7 @@ $('#prep-run').addEventListener('click', () => {
   }
   const dl = document.getElementById('prep-dl');
   if (dl) dl.hidden = true;
-  runCommand({ url: '/api/prep', body: { company, round, senior: document.getElementById('prep-senior').checked },
+  runCommand({ url: '/api/prep', body: { company, round, senior: document.getElementById('prep-senior').checked, tpm: document.getElementById('prep-tpm').checked },
     outId: '#prep-out', outRawId: '#prep-out-raw',
     wrapId: '#prep-out-wrap', busyLabel: 'prepping…',
     progress: {
