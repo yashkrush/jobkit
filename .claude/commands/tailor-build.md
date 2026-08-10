@@ -72,6 +72,14 @@ resume after the ATS, and obvious parroting of the JD reads as lazy and desperat
 - Address a requirement only when I have genuine matching experience in the base resume, the achievement
   bank, or companies/<slug>.md. Unmatched requirements are gaps to report, never phrases to paste in.
 
+PLAIN-LANGUAGE RULE (runs alongside the wording rule above — read `### Plain-language rule — RÉSUMÉS`
+in CLAUDE.md and follow it): write the way a person writes, not the way a model writes. One em-dash per
+line at most and under 40% of bullets using one; no tacked-on "…, giving leadership visibility" benefit
+clause; no rule-of-three "-ing, -ing, and -ing" lists; no puff ("proven track record", "sparring partner",
+"engineering excellence", "leveraged", "seamless"); sentences under ~34 words; and vary bullet length —
+some short and flat. Plainness costs no keywords: standard industry terms are vocabulary, the tells are
+sentence shape. Never drop a real term to sound plainer, and never keep a fancy sentence to hold a term.
+
 Before saving, run a quick HONESTY SELF-AUDIT and report PASS/FAIL: (a) every experience title matches
 CLAUDE.md; (b) every claim traces to a real source; (c) no achievement relabelled into a category it
 isn't; (d) no JD buzzphrase borrowed; (e) nothing from the gap list worn as if met. Fix before saving.
@@ -87,6 +95,10 @@ will measure coverage, apply safe fixes, and set the real verdicts.
 
 STEP 5 — QUALITY CHECKS
 Quantification check, action verb check, 2-page cap. Fix and report each.
+Then MEASURE the plain-language rule instead of asserting it: save the draft, run
+`node plain.js output/resume-<slug>-<YYYYMMDD>.md`, and rewrite every flagged line until the score is
+≥ 80 (verdict PLAIN). Rewrite flagged lines — never delete a fact or a standard term to raise the score
+(that trades an honest keyword for style, which is the wrong trade). Report the before/after score.
 
 STEP 6 — SAVE
 Save resume as output/resume-<slug>-<YYYYMMDD>.md

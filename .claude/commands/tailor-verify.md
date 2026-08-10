@@ -58,10 +58,22 @@ This includes Core Competencies labels and Technical Skills entries (e.g. "Web" 
 - LENGTH, measured not attested: count body words and bullet/paragraph lines. Over ~750 words OR ~48
   lines → OVER-BUDGET ⚠️ (won't fit 2 pages). Report the actual counts.
 
+== AXIS E — PLAIN LANGUAGE (measured, not judged) ==
+Run `node plain.js <the resume file>` and report the score, verdict and every flagged line. Do NOT
+eyeball this — an LLM grades its own prose generously, which is exactly why the check is a regex scan.
+The rules it enforces are in CLAUDE.md `### Plain-language rule — RÉSUMÉS`: stacked em-dashes, tacked-on
+benefit clauses, rule-of-three "-ing" lists, puff phrases, over-long sentences, uniform bullet rhythm.
+- Score ≥ 80 → PLAIN, fine.
+- Score < 80 → FUSSY ⚠️: give a concrete plainer rewrite for each flagged line, preserving every fact,
+  number and standard industry term. A plainer line must never drop a keyword — if a rewrite would, keep
+  the term and re-shape the sentence around it. This axis alone does NOT set the verdict to BLOCK (it is
+  a style defect, not an honesty defect), but the rewrites belong in the fix list.
+
 == OUTPUT ==
 1. A per-claim table: `| line | claim (short) | verdict | source / reason |` grouped by section.
    Only list ✅ as a count per section; list every ⚠️/❓/⛔ in full.
-2. Format check result (sections, density, measured length with numbers).
+2. Format check result (sections, density, measured length with numbers) and the plain-language score
+   with its flagged lines.
 3. VERDICT:
    - BLOCK if any ⛔ banned, any ⚠️ recombination/implausible/over-budget, or any unresolved ❓.
    - PASS only if zero of the above.
@@ -70,7 +82,7 @@ This includes Core Competencies labels and Technical Skills entries (e.g. "Web" 
    together at the end as a short checklist so the candidate can resolve them in one pass.
 5. Write the full report to `output/<slug>/verify-<YYYYMMDD>.md`.
 6. As the VERY LAST line, emit exactly (the UI parses it):
-   `<!-- VERIFY: verdict=<PASS|BLOCK> banned=<n> implausible=<n> unverified=<n> over_budget=<yes|no> -->`
+   `<!-- VERIFY: verdict=<PASS|BLOCK> banned=<n> implausible=<n> unverified=<n> over_budget=<yes|no> plain=<int 0-100> -->`
 
 This runs in a non-chat UI — output is displayed, not replied to. End on the verdict and the fix
 checklist. Do NOT end by asking what to do next or offering to do more. Never end on a question

@@ -79,6 +79,12 @@ Eight tabs, each backed by an endpoint in `server.js`:
   tokenizers would mangle; multi-word phrases; stop-word filtered) and measures coverage in the resume. Same JD + resume → same
   score, every time, with an actionable missing-keyword list. A heuristic, honestly labelled
   as one — not a real ATS engine.
+- **Deterministic plain-language scan (`plain.js`).** Generated prose has measurable tics: stacked
+  em-dashes, tacked-on "…, giving leadership visibility" benefit clauses, rule-of-three "-ing" lists,
+  puff phrases, uniform bullet length. Asking a model whether its own writing sounds AI-generated does
+  not work, so the check is a regex scan that scores 0-100 and names each offending line. It measures
+  sentence *shape*, not vocabulary — the standard industry terms the ATS matches survive every rewrite,
+  so a résumé can be made plainer at no cost to keyword coverage.
 - **Anti-fabrication by construction.** `CLAUDE.md` carries a *fabrication log* of specific
   phrasings the agent must never use, plus honesty rules ("name the gap rather than invent a
   match"). The ATS score is explicitly *not* allowed to justify adding a skill that isn't real.
@@ -154,7 +160,8 @@ is just a form that triggers the command. Logic changes are prompt edits, not re
   Plus Jakarta Sans.
 - **Documents:** `docx` (generate), `mammoth` (read .docx), `pdf-parse` (read .pdf),
   `marked` (Markdown → HTML).
-- **Scoring:** `ats.js`, a self-contained deterministic keyword-coverage module.
+- **Scoring:** `ats.js` (keyword coverage) and `plain.js` (plain-language scan) — self-contained,
+  dependency-free, deterministic modules.
 
 ### The learning loop, concretely
 
@@ -271,6 +278,7 @@ different project — which is rather the point of open-sourcing this one.
 ```
 server.js              Express server, endpoints, doc generation, Claude spawn helper
 ats.js                 Deterministic ATS keyword-coverage scorer
+plain.js               Deterministic plain-language scan (flags AI-sounding prose)
 public/                Vanilla JS frontend (index.html, app.js, style.css)
 .claude/commands/      Slash commands = the agent's business logic (onboard, tailor, prep, log, intake)
 CLAUDE.md.template     Blank, structured profile skeleton — copied/filled to create your CLAUDE.md
