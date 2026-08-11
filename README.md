@@ -59,13 +59,14 @@ an LLM as the runtime.
 
 ## Features
 
-Eight tabs, each backed by an endpoint in `server.js`:
+Nine tabs, each backed by an endpoint in `server.js`:
 
 | Tab | What it does |
 |---|---|
 | **Setup** | First-run onboarding. Upload your résumé (PDF/DOCX) — plus optional comp/location and any wins not on the CV → JobKit drafts your `CLAUDE.md` profile (achievement bank, positioning, honesty rules), grounded only in what you provide, with anything it can't confirm flagged for review. The upload also becomes your base résumé. |
 | **Pipeline** | `pipeline.md` rendered as live status cards — every company, stage, and next action in one view. |
 | **Companies** | Searchable master–detail view of every company — notes, generated files and the captured JD in one pane. Upload your *actually-submitted* resume, mark sent, log entries, close, delete. A failed JD capture (e.g. an auth-walled link that only stored a URL) is detected and offers inline paste-to-recover, so prep and tailor always have the real text. |
+| **Discover** | Finds open roles by reading public ATS boards directly (Greenhouse, Lever, Ashby, Personio and others) plus free aggregators — documented public endpoints, no scraping. Search by title and location, or see only what's new since the last run. Roles you've applied to, dismissed, or ruled out drop off the list. |
 | **Check Match** | Paste a JD → fast APPLY / MAYBE / SKIP verdict with reasoning, against an honest fit filter (comp, scope, language, location). Triage before you invest in a full tailor. |
 | **Tailor** | Paste a JD → grounded, fully-tailored resume + an optional cover letter, a deterministic ATS keyword score, and one-click **DOCX / HTML** download. |
 | **Prep** | Generate a multi-page interview-prep pack for a specific company and round, built from the real JD ↔ CV gap. |
@@ -85,6 +86,12 @@ Eight tabs, each backed by an endpoint in `server.js`:
   not work, so the check is a regex scan that scores 0-100 and names each offending line. It measures
   sentence *shape*, not vocabulary — the standard industry terms the ATS matches survive every rewrite,
   so a résumé can be made plainer at no cost to keyword coverage.
+- **Sourcing that costs nothing until you ask.** Discover narrows thousands of postings in three
+  stages, ordered by cost: a deterministic title/location/language filter, then `ats.js` keyword
+  ranking, then — only for the roles you pick — a single Claude call for the verdict. The first two
+  stages are free, so the model is never spent on a posting you'd have rejected at a glance. Every
+  filtered-out posting is kept with its reason and shown in a "dropped" view, so a too-narrow keyword
+  surfaces as a visible false negative instead of a silent one.
 - **Anti-fabrication by construction.** `CLAUDE.md` carries a *fabrication log* of specific
   phrasings the agent must never use, plus honesty rules ("name the gap rather than invent a
   match"). The ATS score is explicitly *not* allowed to justify adding a skill that isn't real.
@@ -279,6 +286,8 @@ different project — which is rather the point of open-sourcing this one.
 server.js              Express server, endpoints, doc generation, Claude spawn helper
 ats.js                 Deterministic ATS keyword-coverage scorer
 plain.js               Deterministic plain-language scan (flags AI-sounding prose)
+discover.js            Job sourcing from public ATS boards + deterministic filtering
+discover-config.json   Boards to scan, title/location filters, cost limits
 public/                Vanilla JS frontend (index.html, app.js, style.css)
 .claude/commands/      Slash commands = the agent's business logic (onboard, tailor, prep, log, intake)
 CLAUDE.md.template     Blank, structured profile skeleton — copied/filled to create your CLAUDE.md
