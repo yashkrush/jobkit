@@ -2009,9 +2009,444 @@ document.getElementById('add-selected-context').addEventListener('click', async 
   }
 });
 
+// DISCOVER ------------------------------------------------------------------
+let _discConfig = null;
+let _discResults = [];
+let _discDropped = [];
+let _discFilter = 'all';
+let _discPoll = null;
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// One quiet word, clickable through to the company file where the real history lives.
+// Deliberately doesn't name the role or the outcome — that's detail for the company page,
+// not for a list you're skimming.
+function discKnownTag(r) {
+  if (!r.known) return '';
+  const label = r.appliedToRole ? 'applied to this role' : r.knownApplied ? 'applied' : 'notes';
+  return `<a href="#" class="disc-known" data-co="${esc(r.knownSlug)}"
+    style="font-size:11px;color:var(--amber,#e0a23c);text-decoration:none;border-bottom:1px dotted var(--amber,#e0a23c)"
+    >${label}</a>`;
+}
+
+function bindDiscKnownTags(root) {
+  root.querySelectorAll('.disc-known').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault();
+    const slug = a.dataset.co;
+    if (!slug) return;
+    switchToTab('companies');
+    activateCompany(slug);
+    window.scrollTo(0, 0);
+  }));
+}
+
+function discVerdictColour(v) {
+  if (v === 'APPLY') return 'var(--green,#3fb950)';
+  if (v === 'MAYBE') return 'var(--amber,#e0a23c)';
+  if (v === 'SKIP') return 'var(--muted,#8b93a7)';
+  return 'var(--muted,#8b93a7)';
+}
+
+async function loadDiscoverConfig() {
+  const d = await api('/api/discover/config');
+  _discConfig = d.config;
+  const f = _discConfig.filters || {};
+  const l = _discConfig.limits || {};
+  $('#disc-title-include').value = (f.titleInclude || []).join('\n');
+  $('#disc-title-exclude').value = (f.titleExclude || []).join('\n');
+  $('#disc-location-include').value = (f.locationInclude || []).join('\n');
+  $('#disc-location-exclude').value = (f.locationExclude || []).join('\n');
+  $('#disc-german').checked = !!f.excludeIfGermanRequired;
+  $('#disc-english').checked = !!f.requireEnglishDescription;
+  $('#disc-maxgraded').value = l.maxGradedPerRun ?? 15;
+  $('#disc-minats').value = l.minAtsToGrade ?? 0;
+  $('#disc-hour').value = _discConfig.scheduleHour ?? 3;
+  $('#disc-enabled').checked = _discConfig.enabled !== false;
+
+  const sel = $('#disc-new-type');
+  if (sel && !sel.options.length) {
+    (d.sourceTypes || []).forEach(t => sel.add(new Option(t, t)));
+    sel.value = 'greenhouse';
+  }
+  renderDiscoverSources();
+}
+
+function renderDiscoverSources() {
+  const wrap = $('#disc-sources');
+  if (!wrap || !_discConfig) return;
+  const srcs = _discConfig.sources || [];
+  wrap.innerHTML = srcs.map((s, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 8px;border-bottom:1px solid var(--border);font-size:13px">
+      <input type="checkbox" class="disc-src-on" data-i="${i}" ${s.enabled !== false ? 'checked' : ''} />
+      <span style="flex:0 0 118px;color:var(--muted)">${esc(s.type)}</span>
+      <span style="flex:0 0 150px;font-family:monospace">${esc(s.slug)}</span>
+      <span style="flex:1">${esc(s.name || s.slug)}</span>
+      <button class="ghost btn-sm disc-src-test" data-i="${i}">Test</button>
+      <button class="ghost btn-sm disc-src-del" data-i="${i}" style="color:var(--red)">✕</button>
+    </div>`).join('') || '<p class="hint">No sources yet.</p>';
+
+  wrap.querySelectorAll('.disc-src-on').forEach(cb => cb.addEventListener('change', async () => {
+    _discConfig.sources[+cb.dataset.i].enabled = cb.checked;
+    await saveDiscoverConfig();
+  }));
+  wrap.querySelectorAll('.disc-src-del').forEach(b => b.addEventListener('click', async () => {
+    _discConfig.sources.splice(+b.dataset.i, 1);
+    await saveDiscoverConfig();
+    renderDiscoverSources();
+  }));
+  wrap.querySelectorAll('.disc-src-test').forEach(b => b.addEventListener('click', async () => {
+    const s = _discConfig.sources[+b.dataset.i];
+    b.textContent = '…';
+    try {
+      const r = await api('/api/discover/validate-source', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: s.type, slug: s.slug, name: s.name }),
+      });
+      b.textContent = r.ok ? `${r.count} ✓` : '✕';
+      b.style.color = r.ok ? 'var(--green,#3fb950)' : 'var(--red)';
+    } catch (e) { b.textContent = '✕'; b.style.color = 'var(--red)'; }
+    setTimeout(() => { b.textContent = 'Test'; b.style.color = ''; }, 4000);
+  }));
+}
+
+async function saveDiscoverConfig() {
+  await api('/api/discover/config', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ config: _discConfig }),
+  });
+}
+
+async function loadDiscoverResults() {
+  const d = await api('/api/discover/results');
+  _discResults = d.results || [];
+  _discDropped = d.dropped || [];
+
+  const s = d.stats || {};
+  const when = d.lastRun ? new Date(d.lastRun).toLocaleString() : 'never';
+  $('#disc-meta').innerHTML = d.lastRun
+    ? `Last run <strong>${esc(when)}</strong> · fetched ${s.fetched ?? 0} postings · ${s.passedStage1 ?? 0} passed the filter · ${s.graded ?? 0} graded · ${s.alreadySeen ?? 0} already seen`
+    : 'Never run. Hit <strong>Run now</strong> to fetch your first batch.';
+
+  const errWrap = $('#disc-errors');
+  const errs = d.sourceErrors || [];
+  errWrap.hidden = !errs.length;
+  if (errs.length) {
+    errWrap.innerHTML = '<strong>⚠ ' + errs.length + ' source(s) failed — those boards contributed nothing this run:</strong><br>' +
+      errs.map(e => `${esc(e.source)} (${esc(e.type)}): ${esc(e.error)}`).join('<br>');
+  }
+
+  renderDiscoverChips();
+  renderDiscoverResults();
+  renderDiscoverDropped();
+}
+
+// A row is hidden once it's been dealt with: crossed off, graded SKIP, or already applied to.
+// Nothing is deleted; the Hidden chip shows everything that dropped out and why.
+function discIsHidden(r) {
+  return !!(r.dismissed || r.appliedToRole || r.verdict === 'SKIP');
+}
+
+function renderDiscoverChips() {
+  const counts = { all: 0, APPLY: 0, MAYBE: 0, ungraded: 0, hidden: 0 };
+  _discResults.forEach(r => {
+    if (discIsHidden(r)) { counts.hidden++; return; }
+    counts.all++;
+    if (r.verdict === 'APPLY') counts.APPLY++;
+    else if (r.verdict === 'MAYBE') counts.MAYBE++;
+    else counts.ungraded++;
+  });
+  const defs = [['all', 'All'], ['APPLY', 'Apply'], ['MAYBE', 'Maybe'], ['ungraded', 'Ungraded'], ['hidden', 'Hidden']];
+  $('#disc-filter-chips').innerHTML = defs.map(([k, label]) =>
+    `<button class="ghost btn-sm disc-chip${_discFilter === k ? ' active' : ''}" data-f="${k}"
+      style="${_discFilter === k ? 'border-color:var(--accent,#7c5cff);color:var(--accent,#7c5cff)' : ''}">${label} ${counts[k]}</button>`).join('');
+  $$('.disc-chip').forEach(c => c.addEventListener('click', () => {
+    _discFilter = c.dataset.f; renderDiscoverChips(); renderDiscoverResults();
+  }));
+}
+
+function renderDiscoverResults() {
+  const wrap = $('#disc-results');
+  const rows = _discResults.filter(r => {
+    if (_discFilter === 'hidden') return discIsHidden(r);
+    if (discIsHidden(r)) return false;
+    if (_discFilter === 'all') return true;
+    if (_discFilter === 'ungraded') return !r.verdict;
+    return r.verdict === _discFilter;
+  });
+  if (!rows.length) { wrap.innerHTML = '<p class="hint">Nothing here yet.</p>'; return; }
+
+  wrap.innerHTML = rows.map(r => `
+    <div class="disc-card" data-uid="${esc(r.uid)}" style="border:1px solid var(--border);border-left:3px solid ${discVerdictColour(r.verdict)};border-radius:var(--radius-sm,8px);padding:10px 12px;margin-bottom:8px;background:var(--surface-2)">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-weight:700;color:${discVerdictColour(r.verdict)};font-size:12px;letter-spacing:.04em">${esc(r.verdict || 'UNGRADED')}</span>
+        ${r.atsScore != null ? `<span class="ats-badge">ATS ${r.atsScore}</span>` : ''}
+        <strong>${esc(r.company)}</strong>
+        <span>${esc(r.title)}</span>
+        ${discKnownTag(r)}
+        <span style="margin-left:auto;display:flex;gap:6px">
+          <a class="ghost btn-sm" href="${esc(r.url)}" target="_blank" rel="noopener">Open ↗</a>
+          ${r.verdict ? '<button class="ghost btn-sm disc-why">Why?</button>' : '<button class="ghost btn-sm disc-grade">Grade</button>'}
+          <button class="ghost btn-sm disc-tailor">Tailor this →</button>
+          <button class="ghost btn-sm disc-dismiss">${r.dismissed ? 'Undo' : '✕'}</button>
+        </span>
+      </div>
+      <div class="hint" style="margin-top:4px">${esc(r.location || 'location not stated')} · ${esc(r.sourceType)}</div>
+      <div class="rendered disc-analysis" hidden style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"></div>
+    </div>`).join('');
+
+  wrap.querySelectorAll('.disc-card').forEach(card => {
+    const uid = card.dataset.uid;
+    card.querySelector('.disc-dismiss').addEventListener('click', async () => {
+      const r = _discResults.find(x => x.uid === uid);
+      await api('/api/discover/dismiss', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid, undo: !!r.dismissed }),
+      });
+      r.dismissed = !r.dismissed;
+      renderDiscoverChips(); renderDiscoverResults();
+    });
+    const whyBtn = card.querySelector('.disc-why');
+    if (whyBtn) whyBtn.addEventListener('click', async () => {
+      const box = card.querySelector('.disc-analysis');
+      if (!box.hidden) { box.hidden = true; return; }
+      box.hidden = false;
+      box.innerHTML = 'Loading…';
+      try {
+        const d = await api('/api/discover/result/' + encodeURIComponent(uid));
+        box.innerHTML = marked.parse(d.result.analysis || '_No analysis stored._');
+      } catch (e) { box.textContent = 'Error: ' + e.message; }
+    });
+
+    // The only button that spends anything — one Claude call, one posting.
+    const gradeBtn = card.querySelector('.disc-grade');
+    if (gradeBtn) gradeBtn.addEventListener('click', async () => {
+      const box = card.querySelector('.disc-analysis');
+      gradeBtn.disabled = true; gradeBtn.textContent = 'Grading…';
+      box.hidden = false;
+      box.innerHTML = '<span class="hint">Running /tailor-analyse — about a minute.</span>';
+      try {
+        const d = await api('/api/discover/grade', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uid }),
+        });
+        box.innerHTML = marked.parse(d.analysis || '_No analysis returned._');
+        const rec = _discResults.find(x => x.uid === uid);
+        if (rec) { rec.verdict = d.result.verdict; rec.matchScore = d.result.matchScore; }
+        renderDiscoverChips();
+        gradeBtn.textContent = d.result.verdict || 'Graded';
+      } catch (e) {
+        box.innerHTML = '<span style="color:var(--red)">Error: ' + esc(e.message) + '</span>';
+        gradeBtn.disabled = false; gradeBtn.textContent = 'Grade';
+      }
+    });
+    card.querySelector('.disc-tailor').addEventListener('click', async () => {
+      try {
+        const d = await api('/api/discover/result/' + encodeURIComponent(uid));
+        const r = d.result;
+        const jd = `${r.title}\n${r.company}\n${r.location}\n${r.url}\n\n${r.description || ''}`.trim();
+        switchToTab('tailor');
+        const t = $('#tailor-jd');
+        if (t) { t.value = jd; t.focus(); window.scrollTo(0, 0); }
+      } catch (e) { setStatus(e.message, 'error'); }
+    });
+  });
+  bindDiscKnownTags(wrap);
+}
+
+function renderDiscoverDropped() {
+  const q = ($('#disc-dropped-search')?.value || '').toLowerCase();
+  const rows = _discDropped.filter(d =>
+    !q || (d.title + ' ' + d.company).toLowerCase().includes(q)).slice(0, 300);
+  const tally = {};
+  _discDropped.forEach(d => { const k = String(d.reason).split(':')[0]; tally[k] = (tally[k] || 0) + 1; });
+  $('#disc-dropped').innerHTML =
+    `<p class="hint">${_discDropped.length} dropped · ` +
+    Object.entries(tally).map(([k, v]) => `${esc(k)}: ${v}`).join(' · ') + '</p>' +
+    (rows.length ? rows.map(d => `
+      <div style="display:flex;gap:10px;font-size:12.5px;padding:4px 0;border-bottom:1px solid var(--border)">
+        <span style="flex:0 0 150px;color:var(--muted)">${esc(d.reason)}</span>
+        <span style="flex:0 0 130px">${esc(d.company)}</span>
+        <a style="flex:1" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.title)}</a>
+        <span style="flex:0 0 150px;color:var(--muted)">${esc(d.location)}</span>
+      </div>`).join('') : '<p class="hint">Nothing matches that search.</p>');
+}
+
+function pollDiscover() {
+  clearInterval(_discPoll);
+  _discPoll = setInterval(async () => {
+    try {
+      const s = await api('/api/discover/status');
+      const bar = $('#disc-progress');
+      if (s.running) {
+        bar.hidden = false;
+        $('#disc-progress-text').textContent = s.phase === 'grading'
+          ? `Grading ${s.done}/${s.total} through /tailor-analyse…`
+          : 'Fetching boards & filtering…';
+      } else {
+        bar.hidden = true;
+        clearInterval(_discPoll);
+        if (s.error) setStatus('Discover: ' + s.error, 'error');
+        await loadDiscoverResults();
+      }
+    } catch (_) { /* transient */ }
+  }, 2000);
+}
+
+$('#disc-run').addEventListener('click', async () => {
+  try {
+    await api('/api/discover/run', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ grade: true }),
+    });
+    $('#disc-progress').hidden = false;
+    pollDiscover();
+  } catch (e) { setStatus(e.message, 'error'); }
+});
+
+// Ad-hoc search — free. Fetches every board and matches your typed query, ignoring the saved
+// title filters. Grading stays manual, one posting at a time.
+let _discSearch = [];
+
+async function runDiscoverSearch(ignoreExcludes) {
+  const q = $('#disc-search-q').value.trim();
+  if (!q) return;
+  const meta = $('#disc-search-meta');
+  meta.textContent = 'Fetching boards…';
+  $('#disc-search-results').innerHTML = '';
+  try {
+    const d = await api('/api/discover/search', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ q, locations: $('#disc-search-loc').value, ignoreExcludes: !!ignoreExcludes }),
+    });
+    _discSearch = d.results || [];
+    meta.innerHTML = `<strong>${_discSearch.length}</strong> match${_discSearch.length === 1 ? '' : 'es'} across ${d.total} live postings · fetched ${new Date(d.fetchedAt).toLocaleTimeString()}`
+      + (d.hiddenByExclude ? ` · ${d.hiddenByExclude} hidden by your exclude list <a href="#" id="disc-show-excluded">show them</a>` : '')
+      + (d.sourceErrors.length ? ` · <span style="color:var(--amber,#e0a23c)">${d.sourceErrors.length} source(s) failed</span>` : '');
+    const show = $('#disc-show-excluded');
+    if (show) show.addEventListener('click', e => { e.preventDefault(); runDiscoverSearch(true); });
+    renderDiscoverSearch();
+  } catch (e) { meta.textContent = 'Error: ' + e.message; }
+}
+
+function renderDiscoverSearch() {
+  const wrap = $('#disc-search-results');
+  if (!_discSearch.length) { wrap.innerHTML = '<p class="hint">No matches. Try a shorter term.</p>'; return; }
+  wrap.innerHTML = _discSearch.map(r => `
+    <div class="disc-srow" data-uid="${esc(r.uid)}" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+      ${r.atsScore != null ? `<span class="ats-badge" style="flex:0 0 auto">${r.atsScore}</span>` : '<span style="flex:0 0 34px"></span>'}
+      ${r.verdict ? `<span style="font-weight:700;font-size:11px;color:${discVerdictColour(r.verdict)}">${esc(r.verdict)}</span>` : ''}
+      <strong style="flex:0 0 130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.company)}</strong>
+      <a href="${esc(r.url)}" target="_blank" rel="noopener" style="flex:1;min-width:180px">${esc(r.title)}</a>
+      <span class="hint" style="flex:0 0 150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.location || '—')}</span>
+      ${discKnownTag(r)}
+      <button class="ghost btn-sm disc-s-grade">Grade</button>
+      <button class="ghost btn-sm disc-s-tailor">Tailor →</button>
+    </div>
+    <div class="rendered disc-s-out" data-for="${esc(r.uid)}" hidden style="padding:10px 0 14px;border-bottom:1px solid var(--border)"></div>`).join('');
+
+  wrap.querySelectorAll('.disc-srow').forEach(row => {
+    const uid = row.dataset.uid;
+    const out = wrap.querySelector(`.disc-s-out[data-for="${CSS.escape(uid)}"]`);
+    row.querySelector('.disc-s-grade').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true; btn.textContent = 'Grading…';
+      out.hidden = false; out.innerHTML = '<span class="hint">Running /tailor-analyse — about a minute.</span>';
+      try {
+        const d = await api('/api/discover/grade', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uid }),
+        });
+        out.innerHTML = marked.parse(d.analysis || '_No analysis returned._');
+        const rec = _discSearch.find(x => x.uid === uid);
+        if (rec) { rec.verdict = d.result.verdict; rec.matchScore = d.result.matchScore; }
+        btn.textContent = d.result.verdict || 'Graded';
+        loadDiscoverResults().catch(() => {});
+      } catch (err) {
+        out.innerHTML = '<span style="color:var(--red)">Error: ' + esc(err.message) + '</span>';
+        btn.disabled = false; btn.textContent = 'Grade';
+      }
+    });
+    row.querySelector('.disc-s-tailor').addEventListener('click', async () => {
+      try {
+        const d = await api('/api/discover/result/' + encodeURIComponent(uid)).catch(() => null);
+        const r = _discSearch.find(x => x.uid === uid);
+        const desc = d && d.result ? d.result.description : '';
+        const jd = `${r.title}\n${r.company}\n${r.location}\n${r.url}\n\n${desc || ''}`.trim();
+        switchToTab('tailor');
+        const t = $('#tailor-jd');
+        if (t) { t.value = jd; t.focus(); window.scrollTo(0, 0); }
+        if (!desc) setStatus('Grade it first to pull the full JD, or paste the JD manually', 'error');
+      } catch (e) { setStatus(e.message, 'error'); }
+    });
+  });
+  bindDiscKnownTags(wrap);
+}
+
+$('#disc-search-go').addEventListener('click', () => runDiscoverSearch(false));
+$('#disc-search-q').addEventListener('keydown', e => { if (e.key === 'Enter') runDiscoverSearch(false); });
+$('#disc-search-loc').addEventListener('keydown', e => { if (e.key === 'Enter') runDiscoverSearch(false); });
+
+$('#disc-refresh').addEventListener('click', () => { loadDiscoverConfig(); loadDiscoverResults(); });
+$('#disc-dropped-search').addEventListener('input', renderDiscoverDropped);
+
+$('#disc-save-filters').addEventListener('click', async () => {
+  const lines = id => $(id).value.split('\n').map(s => s.trim()).filter(Boolean);
+  _discConfig.filters = {
+    titleInclude: lines('#disc-title-include'),
+    titleExclude: lines('#disc-title-exclude'),
+    locationInclude: lines('#disc-location-include'),
+    locationExclude: lines('#disc-location-exclude'),
+    remoteTerms: (_discConfig.filters && _discConfig.filters.remoteTerms) || [],
+    excludeIfGermanRequired: $('#disc-german').checked,
+    requireEnglishDescription: $('#disc-english').checked,
+  };
+  _discConfig.limits = {
+    ..._discConfig.limits,
+    maxGradedPerRun: parseInt($('#disc-maxgraded').value, 10) || 0,
+    minAtsToGrade: parseInt($('#disc-minats').value, 10) || 0,
+  };
+  _discConfig.scheduleHour = Math.max(0, Math.min(23, parseInt($('#disc-hour').value, 10) || 0));
+  _discConfig.enabled = $('#disc-enabled').checked;
+  try {
+    await saveDiscoverConfig();
+    $('#disc-filters-status').textContent = 'Saved.';
+    setTimeout(() => $('#disc-filters-status').textContent = '', 2500);
+  } catch (e) { $('#disc-filters-status').textContent = 'Error: ' + e.message; }
+});
+
+$('#disc-test-source').addEventListener('click', async () => {
+  const type = $('#disc-new-type').value, slug = $('#disc-new-slug').value.trim();
+  if (!slug) return;
+  const st = $('#disc-source-status');
+  st.textContent = 'Testing…';
+  try {
+    const r = await api('/api/discover/validate-source', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, slug }),
+    });
+    st.textContent = r.ok ? `✓ ${r.count} postings found.` : `✕ ${r.error}`;
+    st.style.color = r.ok ? 'var(--green,#3fb950)' : 'var(--red)';
+  } catch (e) { st.textContent = '✕ ' + e.message; st.style.color = 'var(--red)'; }
+});
+
+$('#disc-add-source').addEventListener('click', async () => {
+  const type = $('#disc-new-type').value;
+  const slug = $('#disc-new-slug').value.trim();
+  const name = $('#disc-new-name').value.trim() || slug;
+  if (!slug) return;
+  if ((_discConfig.sources || []).some(s => s.type === type && s.slug === slug)) {
+    $('#disc-source-status').textContent = 'Already in the list.';
+    return;
+  }
+  _discConfig.sources.push({ type, slug, name, enabled: true });
+  await saveDiscoverConfig();
+  $('#disc-new-slug').value = ''; $('#disc-new-name').value = '';
+  $('#disc-source-status').textContent = 'Added.';
+  renderDiscoverSources();
+});
+
 // boot
 stopProgress();
 loadPipeline();
 loadCompanies();
+loadDiscoverConfig().catch(() => {});
+loadDiscoverResults().catch(() => {});
+api('/api/discover/status').then(s => { if (s.running) { $('#disc-progress').hidden = false; pollDiscover(); } }).catch(() => {});
 // First-run gate: if there's no profile yet, land the user on Setup.
 refreshSetupState().then(s => { if (!s.onboarded) switchToTab('setup'); });

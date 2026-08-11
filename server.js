@@ -7,6 +7,7 @@ const mammoth = require('mammoth');
 const { PDFParse } = require('pdf-parse');
 const { marked } = require('marked');
 const { computeAtsScore } = require('./ats');
+const discover = require('./discover');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -1820,7 +1821,335 @@ app.post('/api/apply-corrections', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// --- Discover: nightly job sourcing over public ATS boards -----------------
+// Stages 1 and 2 (fetch, filter, rank) live in discover.js and are free. Stage 3 — the real
+// APPLY/MAYBE/SKIP verdict — runs `/tailor-analyse` and costs money, so only the top N
+// survivors reach it, and the whole run happens in the background so the UI never blocks.
+
+let discoverRun = { running: false, phase: 'idle', done: 0, total: 0, startedAt: null, error: null };
+
+// Companies you already have history with. This matches on COMPANY, not on the specific role —
+// a new posting at a company you've applied to before is still a new posting. The role and stage
+// come back with it so the UI can say which application it's referring to, rather than implying
+// you already applied to this one.
+async function knownCompanySlugs() {
+  const map = new Map();
+  const add = (slug, role) => {
+    if (!slug) return;
+    if (!map.has(slug)) map.set(slug, { roles: [], stage: '' });
+    if (role && !map.get(slug).roles.includes(role)) map.get(slug).roles.push(role);
+  };
+  let files = [];
+  try { files = await fs.readdir(path.join(ROOT, 'companies')); } catch (_) { /* none yet */ }
+  for (const f of files.filter(x => x.endsWith('.md'))) {
+    const slug = f.slice(0, -3).toLowerCase();
+    add(slug, '');
+    // Application headers look like: "### 2026-08-11 — Engineering Manager — Submitted"
+    try {
+      const md = await fs.readFile(path.join(ROOT, 'companies', f), 'utf8');
+      for (const m of md.matchAll(/^###\s+\S+\s+—\s+(.+?)\s+—\s+\S+/gm)) add(slug, m[1].trim());
+    } catch (_) { /* unreadable, company still counts as known */ }
+  }
+  try {
+    const pipe = await fs.readFile(path.join(ROOT, 'pipeline.md'), 'utf8');
+    for (const line of pipe.split('\n')) {
+      if (!line.startsWith('|')) continue;
+      const c = line.split('|').map(s => s.trim());
+      if (c.length < 5 || /^-+$/.test(c[1]) || c[1].toLowerCase() === 'company') continue;
+      const slug = companySlug(c[1]);
+      add(slug, c[2] || '');
+      if (slug && map.has(slug)) map.get(slug).stage = c[4] || '';
+    }
+  } catch (_) { /* no pipeline yet */ }
+  return map;
+}
+
+// Titles are compared after stripping the gender tags and punctuation that boards sprinkle in
+// ("(m/f/x)", "(all genders)", "(d/f/m)"). Deliberately an EXACT match on the normalised string —
+// a loose match would silently hide genuinely new roles at a company you've applied to once.
+function normTitle(t) {
+  return String(t || '')
+    .toLowerCase()
+    .replace(/\((?:[a-z]\/)+[a-z]\)|\(all genders\)|\(x\/f\/m\)|\(m\/w\/d\)/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+const companySlug = n => String(n || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+// Flattens the company-history lookup onto a posting. `known` means "you have history with this
+// COMPANY" — knownRole/knownStage name which application, so the UI never implies you applied
+// to this exact posting.
+function withKnown(j, known) {
+  const slug = companySlug(j.company);
+  const info = known.get(slug);
+  const roles = (info && info.roles) || [];
+  return {
+    ...j,
+    known: !!info,
+    knownSlug: info ? slug : '',
+    // A recorded role means an actual application; a bare company file means notes only.
+    knownApplied: roles.length > 0,
+    // This exact role has already been applied to, so it shouldn't keep resurfacing.
+    appliedToRole: roles.some(r => normTitle(r) && normTitle(r) === normTitle(j.title)),
+  };
+}
+
+async function gradeJob(j) {
+  const jd = `${j.title}\n${j.company}\n${j.location}\n\n${j.description}`.slice(0, 18000);
+  const out = await runClaude('/tailor-analyse ' + jd, 240000);
+  const m = out.match(/<!--\s*MATCH:\s*verdict=(APPLY|MAYBE|SKIP)\s+score=(\d{1,3})\s*-->/i);
+  return {
+    verdict: m ? m[1].toUpperCase() : null,
+    matchScore: m ? parseInt(m[2], 10) : null,
+    analysis: out.replace(/<!--\s*MATCH:[\s\S]*?-->/i, '').trim(),
+  };
+}
+
+async function doDiscoverRun({ grade = true } = {}) {
+  if (discoverRun.running) return;
+  discoverRun = { running: true, phase: 'fetching', done: 0, total: 0, startedAt: new Date().toISOString(), error: null };
+  try {
+    const cfg = await discover.loadConfig();
+    let state = await discover.loadState();
+    const resumeText = await getBaseResumeText();
+
+    const r = await discover.runDiscovery(cfg, state, resumeText);
+    const known = await knownCompanySlugs();
+    const now = new Date().toISOString();
+
+    const limits = cfg.limits || {};
+    const maxGraded = limits.maxGradedPerRun ?? 15;
+    const minAts = limits.minAtsToGrade ?? 0;
+
+    // Mark everything seen up front, so a crash mid-grade can't cause the same 300 postings
+    // to be re-fetched and re-graded tomorrow.
+    for (const j of r.ranked) state.seen[j.uid] = now;
+    for (const d of r.dropped) state.seen[d.uid] = now;
+
+    const candidates = r.ranked
+      .filter(j => (j.atsScore ?? 0) >= minAts)
+      .slice(0, grade ? maxGraded : 0);
+
+    discoverRun.phase = 'grading';
+    discoverRun.total = candidates.length;
+
+    const graded = [];
+    const queue = [...candidates];
+    const workers = Array.from({ length: Math.min(3, queue.length) }, async () => {
+      while (queue.length) {
+        const j = queue.shift();
+        let g = { verdict: null, matchScore: null, analysis: '' };
+        try { g = await gradeJob(j); } catch (e) { g.analysis = 'Grading failed: ' + e.message; }
+        graded.push({ ...withKnown(j, known), ...g, foundAt: now, dismissed: false });
+        discoverRun.done++;
+      }
+    });
+    await Promise.all(workers);
+
+    // Ungraded survivors are still kept — they just carry no verdict, so nothing is silently lost.
+    const ungraded = r.ranked
+      .filter(j => !graded.some(g => g.uid === j.uid))
+      .map(j => ({ ...withKnown(j, known), verdict: null, matchScore: null, analysis: '', foundAt: now, dismissed: false }));
+
+    const order = { APPLY: 0, MAYBE: 1, SKIP: 3 };
+    state.results = [...graded, ...ungraded, ...(state.results || [])]
+      .filter((v, i, a) => a.findIndex(x => x.uid === v.uid) === i)
+      .sort((a, b) => (order[a.verdict] ?? 2) - (order[b.verdict] ?? 2) || (b.atsScore ?? -1) - (a.atsScore ?? -1))
+      .slice(0, 400);
+    state.dropped = [...r.dropped, ...(state.dropped || [])].slice(0, 3000);
+    state.sourceErrors = r.sourceErrors;
+    state.stats = { ...r.stats, graded: graded.length };
+    state.lastRun = now;
+
+    discover.pruneOld(state, limits.keepDroppedDays ?? 14);
+    await discover.saveState(state);
+    discoverRun.phase = 'done';
+  } catch (e) {
+    discoverRun.error = e.message;
+    discoverRun.phase = 'error';
+  } finally {
+    discoverRun.running = false;
+  }
+}
+
+app.get('/api/discover/config', async (req, res) => {
+  try {
+    res.json({ config: await discover.loadConfig(), sourceTypes: discover.SOURCE_TYPES });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/discover/config', async (req, res) => {
+  try {
+    const cfg = req.body && req.body.config;
+    if (!cfg || typeof cfg !== 'object') return res.status(400).json({ error: 'config required' });
+    await discover.saveConfig(cfg);
+    scheduleNightly();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Validates a board slug before it's saved, so a typo shows up here instead of as silence at 3am.
+app.post('/api/discover/validate-source', async (req, res) => {
+  try {
+    const { type, slug, name } = req.body || {};
+    if (!type || !slug) return res.status(400).json({ error: 'type and slug required' });
+    const { jobs, error } = await discover.fetchSource({ type, slug, name: name || slug });
+    res.json({ ok: !error, count: jobs.length, error });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/discover/results', async (req, res) => {
+  try {
+    const state = await discover.loadState();
+    // Recomputed on every read, not frozen at discovery time — you apply to things after a
+    // posting was first seen, and the list has to notice that.
+    const known = await knownCompanySlugs();
+    res.json({
+      results: (state.results || []).map(({ analysis, description, ...r }) => withKnown(r, known)),
+      dropped: state.dropped || [],
+      sourceErrors: state.sourceErrors || [],
+      stats: state.stats || {},
+      lastRun: state.lastRun || null,
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Full record incl. analysis + JD text — fetched only when a card is expanded.
+app.get('/api/discover/result/:uid', async (req, res) => {
+  try {
+    const state = await discover.loadState();
+    const r = (state.results || []).find(x => x.uid === req.params.uid);
+    if (!r) return res.status(404).json({ error: 'not found' });
+    res.json({ result: r });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/discover/run', async (req, res) => {
+  if (discoverRun.running) return res.json({ started: false, reason: 'already running' });
+  doDiscoverRun({ grade: req.body && req.body.grade !== false });
+  res.json({ started: true });
+});
+
+app.get('/api/discover/status', (req, res) => res.json(discoverRun));
+
+// Ad-hoc search: fetch every board (free, ~4s) and match a typed query against title/company,
+// ignoring the saved title filters entirely. This is the "search it yourself" path — nothing is
+// graded, so it costs nothing; you pick which hits are worth a verdict.
+let fetchCache = { at: 0, jobs: [], sourceErrors: [] };
+
+async function getAllJobs(maxAgeMs = 600000) {
+  if (fetchCache.jobs.length && Date.now() - fetchCache.at < maxAgeMs) return fetchCache;
+  const cfg = await discover.loadConfig();
+  const r = await discover.fetchAllSources(cfg);
+  fetchCache = { at: Date.now(), jobs: r.jobs, sourceErrors: r.sourceErrors };
+  return fetchCache;
+}
+
+app.post('/api/discover/search', async (req, res) => {
+  try {
+    const q = String((req.body && req.body.q) || '').trim().toLowerCase();
+    if (!q) return res.status(400).json({ error: 'query required' });
+
+    const { jobs, at, sourceErrors } = await getAllJobs();
+    const known = await knownCompanySlugs();
+    const state = await discover.loadState();
+
+    // Comma-separated titles are OR'd — "head of quality, director of test" sweeps both.
+    const needles = q.split(/\s*,\s*/).map(s => s.trim()).filter(Boolean);
+
+    // Locations are typed per search, also comma-separated. Empty box = anywhere.
+    const locs = String((req.body && req.body.locations) || '')
+      .toLowerCase().split(/\s*,\s*/).map(s => s.trim()).filter(Boolean);
+
+    let hits = jobs.filter(j => {
+      const hay = (j.title + ' ' + j.company).toLowerCase();
+      if (!needles.some(n => hay.includes(n))) return false;
+      if (locs.length && j.location && !locs.some(k => j.location.toLowerCase().includes(k))) return false;
+      return true;
+    });
+
+    // Your exclude list still applies here — it's a noise filter (food-safety QA, demand-gen
+    // "program manager"), not part of the search scope. The count is reported so it's never silent,
+    // and ignoreExcludes turns it off.
+    let hiddenByExclude = 0;
+    if (!(req.body && req.body.ignoreExcludes)) {
+      const cfg = await discover.loadConfig();
+      const exc = (cfg.filters.titleExclude || []).map(s => s.toLowerCase());
+      const before = hits.length;
+      hits = hits.filter(j => !exc.some(k => j.title.toLowerCase().includes(k)));
+      hiddenByExclude = before - hits.length;
+    }
+
+    hits = discover.rankJobs(hits, await getBaseResumeText()).slice(0, 60);
+
+    const graded = new Map((state.results || []).map(r => [r.uid, r]));
+    res.json({
+      fetchedAt: new Date(at).toISOString(),
+      total: jobs.length,
+      hiddenByExclude,
+      sourceErrors,
+      results: hits.map(({ description, ...j }) => ({
+        ...withKnown(j, known),
+        verdict: graded.get(j.uid)?.verdict ?? null,
+        matchScore: graded.get(j.uid)?.matchScore ?? null,
+      })),
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Grade a single posting on demand — one Claude call, triggered by you, not by the schedule.
+app.post('/api/discover/grade', async (req, res) => {
+  try {
+    const uid = (req.body && req.body.uid) || '';
+    const { jobs } = await getAllJobs();
+    const state = await discover.loadState();
+    const j = jobs.find(x => x.uid === uid) || (state.results || []).find(x => x.uid === uid);
+    if (!j) return res.status(404).json({ error: 'posting not found — re-run the search' });
+
+    const g = await gradeJob(j);
+    const known = await knownCompanySlugs();
+    const rec = {
+      ...withKnown(j, known), ...g, foundAt: new Date().toISOString(),
+      dismissed: false, atsScore: j.atsScore ?? null,
+    };
+    state.results = [rec, ...(state.results || []).filter(r => r.uid !== uid)].slice(0, 400);
+    state.seen[uid] = rec.foundAt;
+    await discover.saveState(state);
+    const { description, ...safe } = rec;
+    res.json({ result: safe, analysis: g.analysis });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/discover/dismiss', async (req, res) => {
+  try {
+    const { uid, undo } = req.body || {};
+    const state = await discover.loadState();
+    const r = (state.results || []).find(x => x.uid === uid);
+    if (r) r.dismissed = !undo;
+    await discover.saveState(state);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Nightly trigger. A plain timer rather than a cron dependency; it only fires while the server
+// is up, so a sleeping laptop skips the night — the Run now button covers that.
+let nightlyTimer = null;
+async function scheduleNightly() {
+  if (nightlyTimer) clearTimeout(nightlyTimer);
+  let cfg;
+  try { cfg = await discover.loadConfig(); } catch (_) { return; }
+  if (!cfg.enabled) return;
+  const hour = Number.isInteger(cfg.scheduleHour) ? cfg.scheduleHour : 3;
+  const next = new Date();
+  next.setHours(hour, 0, 0, 0);
+  if (next <= new Date()) next.setDate(next.getDate() + 1);
+  nightlyTimer = setTimeout(() => { doDiscoverRun({ grade: true }); scheduleNightly(); }, next - new Date());
+  console.log('Discover: next nightly run ' + next.toISOString());
+}
+
 app.listen(PORT, () => {
   console.log('Jobkit UI running at http://localhost:' + PORT);
   console.log('Project root: ' + ROOT);
+  scheduleNightly();
 });

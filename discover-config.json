@@ -1,0 +1,298 @@
+{
+  "enabled": false,
+  "scheduleHour": 3,
+  "limits": {
+    "maxGradedPerRun": 0,
+    "minAtsToGrade": 0,
+    "keepDroppedDays": 14
+  },
+  "filters": {
+    "titleInclude": [
+      "engineering manager",
+      "software development manager",
+      "development manager",
+      "head of engineering",
+      "director of engineering",
+      "senior engineering manager",
+      "qa manager",
+      "quality manager",
+      "quality engineering",
+      "head of qa",
+      "head of quality",
+      "head of test",
+      "head of software quality",
+      "director of quality",
+      "director of test",
+      "test manager",
+      "test engineering",
+      "sdet manager",
+      "quality assurance manager",
+      "technical program manager",
+      "technical programme manager",
+      "program manager",
+      "programme manager",
+      "project manager",
+      "delivery manager",
+      "delivery lead",
+      "program lead",
+      "programme lead",
+      "pmo",
+      "release manager",
+      "engineering operations",
+      "operational excellence",
+      "engineering productivity",
+      "developer productivity",
+      "developer experience",
+      "technical product manager",
+      "platform product manager",
+      "product manager, platform",
+      "product manager - platform",
+      "product manager, developer",
+      "product manager - developer"
+    ],
+    "titleExclude": [
+      "intern",
+      "internship",
+      "working student",
+      "werkstudent",
+      "praktikum",
+      "junior",
+      "apprentice",
+      "sales",
+      "account executive",
+      "recruiter",
+      "talent acquisition",
+      "marketing",
+      "demand generation",
+      "partner program",
+      "partnerships",
+      "customer success",
+      "customer engineering",
+      "solutions architect",
+      "supply chain",
+      "supplier quality",
+      "laboratory",
+      "clinical",
+      "manufacturing",
+      "production line",
+      "food safety",
+      "fsqa",
+      "quality control",
+      "pharmaceutical",
+      "gmp",
+      "iso 9001",
+      "welding",
+      "construction",
+      "automotive quality",
+      "quality inspector",
+      "quality technician"
+    ],
+    "locationInclude": [
+      "berlin",
+      "germany",
+      "deutschland",
+      "emea",
+      "europe",
+      "european",
+      "eu"
+    ],
+    "remoteTerms": [
+      "remote",
+      "anywhere",
+      "distributed",
+      "worldwide",
+      "global"
+    ],
+    "locationExclude": [
+      "us",
+      "usa",
+      "united states",
+      "canada",
+      "latam",
+      "apac",
+      "australia",
+      "new zealand",
+      "india",
+      "brazil",
+      "mexico",
+      "argentina",
+      "colombia",
+      "philippines",
+      "japan",
+      "singapore",
+      "uk",
+      "united kingdom",
+      "london",
+      "ireland",
+      "israel",
+      "south africa",
+      "nigeria",
+      "kenya"
+    ],
+    "excludeIfGermanRequired": true,
+    "requireEnglishDescription": true
+  },
+  "sources": [
+    {
+      "type": "arbeitnow",
+      "slug": "arbeitnow",
+      "name": "Arbeitnow (DE aggregate)",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "greenhouse",
+      "slug": "n26",
+      "name": "N26",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "greenhouse",
+      "slug": "traderepublic",
+      "name": "Trade Republic",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "greenhouse",
+      "slug": "sumup",
+      "name": "SumUp",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "greenhouse",
+      "slug": "hellofresh",
+      "name": "HelloFresh",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "greenhouse",
+      "slug": "contentful",
+      "name": "Contentful",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "greenhouse",
+      "slug": "getyourguide",
+      "name": "GetYourGuide",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "greenhouse",
+      "slug": "doctolib",
+      "name": "Doctolib",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "greenhouse",
+      "slug": "gitlab",
+      "name": "GitLab",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "greenhouse",
+      "slug": "elastic",
+      "name": "Elastic",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "greenhouse",
+      "slug": "grafanalabs",
+      "name": "Grafana Labs",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "greenhouse",
+      "slug": "datadog",
+      "name": "Datadog",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "greenhouse",
+      "slug": "cloudflare",
+      "name": "Cloudflare",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "greenhouse",
+      "slug": "saucelabs",
+      "name": "Sauce Labs",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "greenhouse",
+      "slug": "mabl",
+      "name": "mabl",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "greenhouse",
+      "slug": "smartbear",
+      "name": "SmartBear",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "ashby",
+      "slug": "vercel",
+      "name": "Vercel",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "ashby",
+      "slug": "supabase",
+      "name": "Supabase",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "ashby",
+      "slug": "linear",
+      "name": "Linear",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "ashby",
+      "slug": "ramp",
+      "name": "Ramp",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "ashby",
+      "slug": "deel",
+      "name": "Deel",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "ashby",
+      "slug": "notion",
+      "name": "Notion",
+      "enabled": true,
+      "verified": true
+    },
+    {
+      "type": "ashby",
+      "slug": "posthog",
+      "name": "PostHog",
+      "enabled": true,
+      "verified": true
+    }
+  ]
+}

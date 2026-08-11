@@ -23,6 +23,7 @@
   <nav class="tabs">
     <button class="tab active" data-tab="pipeline">Pipeline</button>
     <button class="tab" data-tab="companies">Companies</button>
+    <button class="tab" data-tab="discover">Discover</button>
     <button class="tab" data-tab="match">Check Match</button>
     <button class="tab" data-tab="tailor">Tailor</button>
     <button class="tab" data-tab="prep">Prep</button>
@@ -38,6 +39,112 @@
   <section class="panel active" id="panel-pipeline">
     <div class="panel-header"><div class="panel-title">Pipeline</div><button class="ghost btn-sm" id="pipeline-refresh">Refresh</button></div>
     <div class="rendered" id="pipeline-view">Loading…</div>
+  </section>
+
+  <!-- DISCOVER -->
+  <section class="panel" id="panel-discover">
+    <div class="panel-header">
+      <div class="panel-title">Discover — job sourcing</div>
+      <button class="ghost btn-sm" id="disc-refresh">Refresh</button>
+      <button class="primary btn-sm" id="disc-run">Check what's new</button>
+    </div>
+    <p class="hint">
+      Two ways to use this, and <strong>both are free</strong> — fetching job boards costs nothing.<br>
+      <strong>Search</strong> (below) — look for specific titles right now, across everything currently posted.<br>
+      <strong>Check what's new</strong> (button above) — uses your saved filters and shows only postings you haven't seen before.<br>
+      The only thing that costs anything is pressing <strong>Grade</strong> on a role, which runs the real APPLY / MAYBE / SKIP analysis.
+    </p>
+
+    <div class="progress-bar" id="disc-progress" hidden>
+      <div class="progress-spinner"></div>
+      <span id="disc-progress-text">Fetching boards…</span>
+    </div>
+
+    <div id="disc-meta" class="hint" style="margin:10px 0"></div>
+    <div id="disc-errors" hidden style="margin-bottom:12px;padding:10px 12px;border:1px solid var(--amber,#e0a23c);border-radius:8px;background:rgba(224,162,60,0.07);font-size:13px"></div>
+
+    <div style="border:1px solid var(--border);border-radius:var(--radius,10px);padding:12px 14px;margin-bottom:16px;background:var(--surface-2)">
+      <label style="margin-top:0">Search — free, anytime</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:2;min-width:240px">
+          <label style="margin-top:0;font-size:12px;opacity:.75">Job titles <span style="font-weight:400">— comma-separated</span></label>
+          <input type="text" id="disc-search-q" placeholder="head of quality, director of test, engineering manager" />
+        </div>
+        <div style="flex:1;min-width:160px">
+          <label style="margin-top:0;font-size:12px;opacity:.75">Locations <span style="font-weight:400">— blank = anywhere</span></label>
+          <input type="text" id="disc-search-loc" value="berlin, remote, germany" placeholder="berlin, remote" />
+        </div>
+        <button class="primary btn-sm" id="disc-search-go" style="margin-bottom:1px">Search</button>
+      </div>
+      <p class="hint" style="margin:6px 0 0">Searches everything currently posted on your boards, ignoring your saved filters. Costs nothing. Press <strong>Grade</strong> on a row for the real verdict — that's the only paid step.</p>
+      <div id="disc-search-meta" class="hint" style="margin-top:8px"></div>
+      <div id="disc-search-results" style="margin-top:8px"></div>
+    </div>
+
+    <div class="row" id="disc-filter-chips" style="margin-bottom:6px"></div>
+    <div id="disc-results"></div>
+
+    <details class="analysis-details" id="disc-dropped-wrap">
+      <summary>Dropped by the filter — check what it threw away</summary>
+      <p class="hint">This is how you decide whether to trust it. If something here should have come through, add or remove a keyword under Filters. Kept for 14 days.</p>
+      <input id="disc-dropped-search" type="text" placeholder="Search dropped titles / companies…" style="margin-bottom:10px" />
+      <div id="disc-dropped"></div>
+    </details>
+
+    <details class="analysis-details">
+      <summary>Filters &amp; cost controls</summary>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px">
+        <div style="flex:0 0 170px"><label>Auto-grade per run</label><input type="number" id="disc-maxgraded" min="0" max="60" /></div>
+        <div style="flex:0 0 150px"><label>Min ATS to auto-grade</label><input type="number" id="disc-minats" min="0" max="100" /></div>
+        <div style="flex:0 0 150px"><label>Scheduled hour (0–23)</label><input type="number" id="disc-hour" min="0" max="23" /></div>
+        <div style="flex:1;min-width:220px;display:flex;align-items:flex-end;gap:14px;padding-bottom:4px">
+          <label class="inline-check"><input type="checkbox" id="disc-enabled" /> Run on a schedule (needs the laptop awake)</label>
+        </div>
+      </div>
+      <p class="hint" style="margin-top:0">
+        <strong>Auto-grade per run = 0</strong> means nothing is ever graded without you pressing Grade. That's the recommended setting: everything stays free and you spend one Claude call at a time, on roles you've chosen.
+        Raise it only if you'd rather wake up to verdicts already done.
+        The scheduled run is off by default — a sleeping laptop skips it anyway, so <strong>Check what's new</strong> is the reliable way to run it.
+      </p>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <div style="flex:1;min-width:240px">
+          <label>Title must contain one of <span style="opacity:.6;font-weight:400">— one per line</span></label>
+          <textarea id="disc-title-include" rows="10"></textarea>
+        </div>
+        <div style="flex:1;min-width:240px">
+          <label>Title must NOT contain <span style="opacity:.6;font-weight:400">— one per line</span></label>
+          <textarea id="disc-title-exclude" rows="10"></textarea>
+        </div>
+        <div style="flex:1;min-width:240px">
+          <label>Regions you can work in <span style="opacity:.6;font-weight:400">— blank locations are kept</span></label>
+          <textarea id="disc-location-include" rows="10"></textarea>
+        </div>
+        <div style="flex:1;min-width:240px">
+          <label>Regions you can't <span style="opacity:.6;font-weight:400">— drops "Remote, US"</span></label>
+          <textarea id="disc-location-exclude" rows="10"></textarea>
+        </div>
+      </div>
+      <p class="hint" style="margin-top:0">A region on the right vetoes the posting, unless a region on the left is also named — so "Remote, US" is dropped but "Remote, US; Remote, Germany" is kept. Plain "Remote", "Anywhere" and "Distributed" are always kept.</p>
+      <div class="row" style="margin-top:4px">
+        <label class="inline-check"><input type="checkbox" id="disc-german" /> Drop roles that require fluent German</label>
+        <label class="inline-check"><input type="checkbox" id="disc-english" /> Drop non-English descriptions</label>
+      </div>
+      <div class="row"><button class="primary btn-sm" id="disc-save-filters">Save filters</button><span id="disc-filters-status" class="hint"></span></div>
+    </details>
+
+    <details class="analysis-details">
+      <summary>Sources — job boards being scanned</summary>
+      <p class="hint">Public, key-free ATS endpoints. Add a company by picking its board type and slug — the slug is the company's name in its careers URL. Test before saving so a typo doesn't turn into silence.</p>
+      <div id="disc-sources"></div>
+      <div class="row" style="margin-top:10px;align-items:flex-end;gap:8px;flex-wrap:wrap">
+        <div style="flex:0 0 160px"><label>Type</label><select id="disc-new-type"></select></div>
+        <div style="flex:0 0 170px"><label>Slug</label><input type="text" id="disc-new-slug" placeholder="e.g. zalando" /></div>
+        <div style="flex:1;min-width:150px"><label>Display name</label><input type="text" id="disc-new-name" placeholder="e.g. Zalando" /></div>
+        <button class="ghost btn-sm" id="disc-test-source">Test</button>
+        <button class="primary btn-sm" id="disc-add-source">Add</button>
+      </div>
+      <div id="disc-source-status" class="hint"></div>
+    </details>
   </section>
 
   <!-- CHECK MATCH -->
