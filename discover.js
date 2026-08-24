@@ -16,22 +16,74 @@ const ROOT = process.cwd();
 const CONFIG_PATH = path.join(ROOT, 'discover-config.json');
 const STATE_DIR = path.join(ROOT, 'output', '_discover');
 const STATE_PATH = path.join(STATE_DIR, 'state.json');
+// The reject audit trail lives in its own file. state.json is re-parsed on every API request,
+// and at ~200 boards a single sweep drops tens of thousands of postings — keeping those inline
+// would mean paying to parse the whole audit trail just to answer /status.
+const DROPPED_PATH = path.join(STATE_DIR, 'dropped.json');
 
 const UA = 'jobkit-discover/1.0 (personal job search; contact via repo)';
 const FETCH_TIMEOUT = 15000;
 
+// Paging guards. Boards this big don't exist in practice; the cap is here so a broken
+// `next` link can't turn one source into an unbounded loop.
+const MAX_PAGES = 12;
+// Arbeitnow is one free community API rather than a per-company board, and its own docs ask
+// callers not to hammer it. Fewer pages, spaced further apart, than the ATS endpoints.
+const ARBEITNOW_MAX_PAGES = 5;
+const ARBEITNOW_PAGE_DELAY = 1200;
+
+// A transient 5xx used to lose a board for the whole run. Retry with backoff; 429 gets a
+// longer wait, because it means we're already asking too fast.
+const RETRY_STATUS = new Set([429, 500, 502, 503, 504, 408]);
+const MAX_ATTEMPTS = 3;
+
 // --- small helpers ---------------------------------------------------------
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// Per-host request spacing, applied to EVERY request rather than once per source. Pagination
+// means one board can be a dozen requests, and 150 Greenhouse boards share a single host — so
+// spacing at the source level leaves the actual traffic unthrottled.
+const HOST_MIN_INTERVAL = 250;
+const hostNextFreeAt = new Map();
+
+async function hostGate(url) {
+  let host;
+  try { host = new URL(url).host; } catch (_) { return; }
+  const now = Date.now();
+  const prev = hostNextFreeAt.get(host) || 0;
+  const wait = Math.max(0, prev - now);
+  hostNextFreeAt.set(host, Math.max(now, prev) + HOST_MIN_INTERVAL);
+  if (wait) await sleep(wait);
+}
+
+function dedupeById(jobs) {
+  const seen = new Set();
+  return jobs.filter(j => (seen.has(j.uid) ? false : (seen.add(j.uid), true)));
+}
+
+async function getRaw(url, accept) {
+  const headers = accept ? { 'user-agent': UA, accept } : { 'user-agent': UA };
+  for (let attempt = 0; ; attempt++) {
+    await hostGate(url);
+    const r = await fetch(url, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT) });
+    if (r.ok) return r;
+    if (attempt < MAX_ATTEMPTS - 1 && RETRY_STATUS.has(r.status)) {
+      const retryAfter = Number(r.headers.get('retry-after'));
+      const backoff = r.status === 429 ? 2000 * (attempt + 1) : 800 * (attempt + 1);
+      await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter * 1000, 10000) : backoff);
+      continue;
+    }
+    throw new Error('HTTP ' + r.status);
+  }
+}
+
 async function getJson(url) {
-  const r = await fetch(url, { headers: { 'user-agent': UA, accept: 'application/json' }, signal: AbortSignal.timeout(FETCH_TIMEOUT) });
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  return r.json();
+  return (await getRaw(url, 'application/json')).json();
 }
 
 async function getText(url) {
-  const r = await fetch(url, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(FETCH_TIMEOUT) });
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  return r.text();
+  return (await getRaw(url)).text();
 }
 
 const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', '#39': "'", '#x27': "'", '#160': ' ' };
@@ -106,6 +158,9 @@ const FETCHERS = {
         j.careers_url, stripHtml(j.description), j.published_at));
   },
 
+  // Deliberately NOT paginated. The widget endpoint exposes no paging metadata (no total, no
+  // next link), and speculatively looping it sits behind Cloudflare — a since_id loop earned a
+  // sustained 1015 rate-limit block on every Workable board. One request, as documented.
   async workable(src) {
     const d = await getJson(`https://apply.workable.com/api/v1/widget/accounts/${src.slug}?details=true`);
     return (d.jobs || []).map(j =>
@@ -115,11 +170,21 @@ const FETCHERS = {
   },
 
   async smartrecruiters(src) {
-    const d = await getJson(`https://api.smartrecruiters.com/v1/companies/${src.slug}/postings?limit=100`);
-    return (d.content || []).map(j =>
-      job('smartrecruiters', src.slug, src.name, j.id, j.name,
-        j.location ? [j.location.city, j.location.country].filter(Boolean).join(', ') : '',
-        `https://jobs.smartrecruiters.com/${src.slug}/${j.id}`, '', j.releasedDate));
+    const out = [];
+    let offset = 0, total = Infinity;
+    while (offset < total && out.length < MAX_PAGES * 100) {
+      const d = await getJson(`https://api.smartrecruiters.com/v1/companies/${src.slug}/postings?limit=100&offset=${offset}`);
+      const batch = d.content || [];
+      if (typeof d.totalFound === 'number') total = d.totalFound;
+      for (const j of batch) {
+        out.push(job('smartrecruiters', src.slug, src.name, j.id, j.name,
+          j.location ? [j.location.city, j.location.country].filter(Boolean).join(', ') : '',
+          `https://jobs.smartrecruiters.com/${src.slug}/${j.id}`, '', j.releasedDate));
+      }
+      if (!batch.length) break;
+      offset += batch.length;
+    }
+    return out;
   },
 
   // Personio publishes an XML feed rather than JSON; parsed with regex to avoid a new dependency.
@@ -141,13 +206,22 @@ const FETCHERS = {
   },
 
   // Germany-wide free aggregate. Broad, so it leans hard on the stage-1 filter.
+  // Follows links.next, but capped: their API docs ask callers not to hammer it.
   async arbeitnow() {
-    const d = await getJson('https://www.arbeitnow.com/api/job-board-api');
-    return (d.data || []).map(j =>
-      job('arbeitnow', 'arbeitnow', j.company_name, j.slug, j.title,
-        j.remote ? `${j.location || ''} (remote)` : j.location,
-        j.url, stripHtml(j.description),
-        j.created_at ? new Date(j.created_at * 1000).toISOString() : null));
+    const out = [];
+    let url = 'https://www.arbeitnow.com/api/job-board-api';
+    for (let page = 0; page < ARBEITNOW_MAX_PAGES && url; page++) {
+      const d = await getJson(url);
+      for (const j of d.data || []) {
+        out.push(job('arbeitnow', 'arbeitnow', j.company_name, j.slug, j.title,
+          j.remote ? `${j.location || ''} (remote)` : j.location,
+          j.url, stripHtml(j.description),
+          j.created_at ? new Date(j.created_at * 1000).toISOString() : null));
+      }
+      url = (d.links && d.links.next) || null;
+      if (url) await sleep(ARBEITNOW_PAGE_DELAY);
+    }
+    return dedupeById(out);
   },
 };
 
@@ -271,14 +345,57 @@ async function loadState() {
 
 async function saveState(s) {
   await fs.mkdir(STATE_DIR, { recursive: true });
-  await fs.writeFile(STATE_PATH, JSON.stringify(s, null, 2) + '\n');
+  // `dropped` is persisted separately; never let a stale copy ride along in state.json.
+  const { dropped, ...rest } = s;
+  await fs.writeFile(STATE_PATH, JSON.stringify(rest, null, 2) + '\n');
   return s;
 }
 
-function pruneOld(state, keepDays) {
+// --- dropped (the "Dropped by the filter" audit trail) ---------------------
+// Read only by the results endpoint, so it can be large without slowing anything else down.
+
+async function loadDropped() {
+  try {
+    const d = JSON.parse(await fs.readFile(DROPPED_PATH, 'utf8'));
+    if (Array.isArray(d)) return { rows: d, tallies: [] };          // pre-split format
+    return { rows: d.rows || [], tallies: d.tallies || [] };
+  } catch (_) {
+    return { rows: [], tallies: [] };
+  }
+}
+
+async function saveDropped(d) {
+  await fs.mkdir(STATE_DIR, { recursive: true });
+  await fs.writeFile(DROPPED_PATH, JSON.stringify(d, null, 2) + '\n');
+  return d;
+}
+
+// One-time lift of an existing inline state.dropped into the new file.
+async function migrateDropped(state) {
+  if (!Array.isArray(state.dropped) || !state.dropped.length) return;
+  const cur = await loadDropped();
+  if (cur.rows.length) return;
+  await saveDropped({ rows: state.dropped, tallies: [] });
+}
+
+// Reason counts survive even when individual rows age out, so the distribution stays
+// checkable for false negatives past the row cap.
+function tallyReasons(dropped) {
+  const counts = {};
+  for (const d of dropped) {
+    const key = String(d.reason || 'unknown').split(':')[0];
+    counts[key] = (counts[key] || 0) + 1;
+  }
+  return counts;
+}
+
+function pruneOld(state, keepDays, dropped) {
   const cutoff = Date.now() - keepDays * 86400000;
   const fresh = r => !r.foundAt || new Date(r.foundAt).getTime() >= cutoff;
-  state.dropped = (state.dropped || []).filter(fresh);
+  if (dropped) {
+    dropped.rows = (dropped.rows || []).filter(fresh);
+    dropped.tallies = (dropped.tallies || []).filter(fresh);
+  }
   for (const [uid, ts] of Object.entries(state.seen || {})) {
     if (new Date(ts).getTime() < Date.now() - 120 * 86400000) delete state.seen[uid];
   }
@@ -289,19 +406,26 @@ function pruneOld(state, keepDays) {
 // Fetch → dedupe against seen → stage 1 → rank. Grading (stage 3) stays in server.js
 // because it needs the Claude runner; this module stays free and testable.
 
-// Fetch every enabled board once. Free and fast (~4s for 23 boards), so both the nightly run
-// and ad-hoc search share it rather than each having their own fetch path.
+// Fetch every enabled board once. Both the nightly run and ad-hoc search share it rather than
+// each having their own fetch path. Politeness is handled per-request in hostGate, not here,
+// so paginating fetchers are throttled too.
 async function fetchAllSources(cfg, log = () => {}) {
   const sources = (cfg.sources || []).filter(s => s.enabled !== false);
   const sourceErrors = [];
+  const timings = [];
   const all = [];
 
-  // modest concurrency — enough to be quick, polite enough not to look like an attack
+  const limits = cfg.limits || {};
+  const concurrency = Math.max(1, limits.fetchConcurrency || 10);
+
   const queue = [...sources];
-  const workers = Array.from({ length: Math.min(6, queue.length) }, async () => {
+  const workers = Array.from({ length: Math.min(concurrency, queue.length) }, async () => {
     while (queue.length) {
       const src = queue.shift();
+      const t0 = Date.now();
       const { jobs, error } = await fetchSource(src);
+      const ms = Date.now() - t0;
+      timings.push({ source: src.name || src.slug, type: src.type, ms, count: jobs.length });
       if (error) sourceErrors.push({ source: src.name || src.slug, type: src.type, error });
       else log(`${src.name || src.slug}: ${jobs.length}`);
       all.push(...jobs);
@@ -309,13 +433,16 @@ async function fetchAllSources(cfg, log = () => {}) {
   });
   await Promise.all(workers);
 
+  // Slowest boards first, so one bad source is attributable instead of just "the run got slow".
+  timings.sort((a, b) => b.ms - a.ms);
+
   const byUid = new Map();
   for (const j of all) if (!byUid.has(j.uid)) byUid.set(j.uid, j);
-  return { jobs: [...byUid.values()], fetched: all.length, sourceErrors };
+  return { jobs: [...byUid.values()], fetched: all.length, sourceErrors, timings };
 }
 
 async function runDiscovery(cfg, state, resumeText, log = () => {}) {
-  const { jobs: unique, fetched, sourceErrors } = await fetchAllSources(cfg, log);
+  const { jobs: unique, fetched, sourceErrors, timings } = await fetchAllSources(cfg, log);
   const all = { length: fetched };
 
   const seen = state.seen || {};
@@ -335,12 +462,15 @@ async function runDiscovery(cfg, state, resumeText, log = () => {}) {
     ranked,
     dropped,
     sourceErrors,
+    timings,
     stats: {
       fetched: all.length,
       unique: unique.length,
       alreadySeen: unique.length - fresh.length,
       passedStage1: kept.length,
       droppedStage1: dropped.length,
+      dropReasons: tallyReasons(dropped),
+      sourcesFetched: (cfg.sources || []).filter(s => s.enabled !== false).length,
     },
   };
 }
@@ -348,5 +478,6 @@ async function runDiscovery(cfg, state, resumeText, log = () => {}) {
 module.exports = {
   runDiscovery, fetchAllSources, fetchSource, stage1Filter, locationVerdict, rankJobs, looksEnglish, stripHtml,
   loadConfig, saveConfig, loadState, saveState, pruneOld,
-  SOURCE_TYPES, CONFIG_PATH, STATE_PATH,
+  loadDropped, saveDropped, migrateDropped, tallyReasons,
+  SOURCE_TYPES, CONFIG_PATH, STATE_PATH, DROPPED_PATH,
 };

@@ -1,5 +1,35 @@
 const $ = sel => document.querySelector(sel);
 const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+// ── Feedback: a short message, and confetti for the rare genuinely good news ──
+// Reserved for real wins (an interview booked, an offer logged). Overusing it
+// would make it worthless, so nothing routine triggers it.
+function toast(msg, kind = '') {
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind ? ' ' + kind : '');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('out');
+    setTimeout(() => el.remove(), 300);
+  }, 2600);
+}
+
+function celebrate() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const colours = ['#6d4aff', '#ff5c8a', '#ffb020', '#0ea472', '#3b82f6', '#ff7a59'];
+  for (let i = 0; i < 44; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.background = colours[i % colours.length];
+    p.style.animationDuration = (2.1 + Math.random() * 1.4) + 's';
+    p.style.animationDelay = (Math.random() * 0.35) + 's';
+    p.style.transform = `rotate(${Math.random() * 360}deg)`;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 4200);
+  }
+}
 const statusEl = $('#status');
 
 function slugify(name) {
@@ -20,6 +50,9 @@ let _diffData = null;
 let _diffVisible = false;
 let _progressTimer = null;
 let _resumeMarkdown = null;
+// Deterministic ATS score for the current tailor run (server-side ats.js). The builder no longer
+// self-grades, so this — not resume_data — is what gets logged when a resume is marked as sent.
+let _atsScore = null;
 let _pipelineRows = [];
 let _pipelineStrategy = '';
 let _pipelineFilter = 'all';
@@ -300,6 +333,35 @@ function renderPipeline(md) {
 }
 
 // Re-renders the pipeline from cached rows applying current filter/sort/search.
+// ── Hero: greeting + a plain-spoken read of where things stand ───────────────
+// Job hunting is mostly silence, so the top of the app reports the things you
+// actually control — sent, live, moving — instead of a rejection count. The
+// wording stays flat and honest; nothing here is a pep talk.
+function renderHero(counts) {
+  const greetEl = document.getElementById('hero-greet');
+  const lineEl = document.getElementById('hero-line');
+  if (!greetEl || !lineEl) return;
+
+  const h = new Date().getHours();
+  const partOfDay = h < 5 ? 'Late one' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  greetEl.textContent = partOfDay;
+
+  const live = counts.submitted + counts.screening + counts.interviewing;
+  let line;
+  if (!counts.all) {
+    line = 'Nothing logged yet. Discover is a good place to start — browsing is free.';
+  } else if (counts.offer) {
+    line = `${counts.offer} offer${counts.offer > 1 ? 's' : ''} on the table. Whatever happens next, that part is done.`;
+  } else if (counts.interviewing) {
+    line = `${counts.interviewing} process${counts.interviewing > 1 ? 'es' : ''} at interview stage, ${live} live in total. That's the part that took the work.`;
+  } else if (live) {
+    line = `${live} application${live > 1 ? 's' : ''} live. Waiting is the slow bit — it isn't a verdict on you.`;
+  } else {
+    line = `${counts.all} logged, none live right now. A quiet week is a normal week.`;
+  }
+  lineEl.textContent = line;
+}
+
 function renderPipelineView() {
   const container = document.getElementById('pipeline-view');
   const rows = _pipelineRows;
@@ -311,12 +373,14 @@ function renderPipelineView() {
     if (counts[cat] !== undefined) counts[cat]++;
   });
 
+  renderHero(counts);
+
   let html = `<div class="pl-stats">
     <div class="pl-stat"><span class="pl-stat-n">${counts.all}</span><span class="pl-stat-l">Total</span></div>
     <div class="pl-stat"><span class="pl-stat-n teal">${counts.submitted}</span><span class="pl-stat-l">Submitted</span></div>
     <div class="pl-stat"><span class="pl-stat-n amber">${counts.screening}</span><span class="pl-stat-l">Screening</span></div>
     <div class="pl-stat"><span class="pl-stat-n blue">${counts.interviewing}</span><span class="pl-stat-l">Interviewing</span></div>
-    <div class="pl-stat"><span class="pl-stat-n green">${counts.offer}</span><span class="pl-stat-l">Offers</span></div>
+    <div class="pl-stat${counts.offer ? ' won' : ''}"><span class="pl-stat-n green">${counts.offer}</span><span class="pl-stat-l">Offers</span></div>
     <div class="pl-stat"><span class="pl-stat-n muted">${counts.closed}</span><span class="pl-stat-l">Closed</span></div>
   </div>`;
 
@@ -358,7 +422,7 @@ function renderPipelineView() {
   });
 
   html += '<div class="pl-list">';
-  if (!view.length) html += '<div class="pl-empty">No matches.</div>';
+  if (!view.length) html += '<div class="pl-empty" data-emoji="\u{1F50D}"><span class="empty-title">Nothing matches that</span>Try a different filter or clear the search.</div>';
   view.forEach(row => {
     const company = row['company'] || '';
     const role    = row['role'] || '';
@@ -548,10 +612,10 @@ function renderCompanyList() {
   const q = _companySearch.trim().toLowerCase();
   const shown = _companyNames.filter(n => !q || n.replace(/-/g, ' ').toLowerCase().includes(q));
   if (!_companyNames.length) {
-    list.innerHTML = '<p class="co-empty">No companies yet. Use Intake to add one.</p>';
+    list.innerHTML = '<p class="co-empty" data-emoji="\u{1F331}"><span class="empty-title">No companies yet</span>Every process starts as one line in Intake.</p>';
     return;
   }
-  if (!shown.length) { list.innerHTML = '<p class="co-empty">No matches.</p>'; return; }
+  if (!shown.length) { list.innerHTML = '<p class="co-empty" data-emoji="\u{1F50D}">Nothing matches that search.</p>'; return; }
   list.innerHTML = shown.map(n => {
     const stage = companyStage(n);
     const badge = stage ? `<span class="co-card-stage stage-badge ${stageBadgeClass(stage)}">${stageCategory(stage)}</span>` : '';
@@ -1396,7 +1460,7 @@ document.getElementById('tailor-run').addEventListener('click', async () => {
   ids.forEach(id => { const el = document.getElementById(id); if (el) el.hidden = true; });
   const rp = document.getElementById('resume-preview');
   if (rp) rp.innerHTML = '';
-  _resumeData = null; _diffData = null; _diffVisible = false; _resumeMarkdown = null;
+  _resumeData = null; _diffData = null; _diffVisible = false; _resumeMarkdown = null; _atsScore = null;
   document.getElementById('resume-edit-btn').hidden = true;
   document.getElementById('resume-apply-btn').hidden = true;
   document.getElementById('resume-cancel-edit-btn').hidden = true;
@@ -1450,8 +1514,8 @@ document.getElementById('tailor-run').addEventListener('click', async () => {
     const rawEl = document.getElementById('tailor-out-raw');
     if (rawEl) rawEl.value = d.output || '';
     // Deterministic ATS score from the server; fall back to the legacy text-scrape only if absent.
-    if (d.ats && typeof d.ats.score === 'number') showATSBadge(d.ats.score, d.ats, d.screen);
-    else showATSBadge(parseATSScore(d.output || ''));
+    if (d.ats && typeof d.ats.score === 'number') { _atsScore = d.ats.score; showATSBadge(d.ats.score, d.ats, d.screen); }
+    else { _atsScore = parseATSScore(d.output || ''); showATSBadge(_atsScore); }
     // auto-open analysis section when there's content
     if (d.output) {
       const det = document.querySelector('.analysis-details');
@@ -1509,7 +1573,8 @@ document.getElementById('tailor-run').addEventListener('click', async () => {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 company: _resumeData.slug, filename: _resumeData.filename + '.docx',
-                ats_score: _resumeData.ats_score, jd_title: _resumeData.jd_title,
+                ats_score: _atsScore != null ? _atsScore : _resumeData.ats_score,
+                jd_title: _resumeData.jd_title,
                 date: _resumeData.date,
                 jd_snippet: (document.getElementById('tailor-jd').value || '').replace(/\s+/g,' ').substring(0,800),
               }),
@@ -1586,6 +1651,14 @@ $('#log-run-direct').addEventListener('click', async () => {
     render('#log-out', '**Logged:** ' + r.entry);
     $('#log-note').value = '';
     $('#log-stage').value = '';
+
+    // Confetti is reserved for the two stages worth celebrating. Everything else
+    // gets a plain confirmation — otherwise the signal stops meaning anything.
+    const s = stage.toLowerCase();
+    if (/offer/.test(s)) { celebrate(); toast('Offer logged. Enjoy this one.', 'good'); }
+    else if (/interview|final|onsite|screen/.test(s)) { celebrate(); toast('Interview booked — nice.', 'good'); }
+    else toast('Logged.');
+
     await loadPipeline();
     await loadCompanies();
   } catch (e) { setStatus('Error: ' + e.message, 'error'); }
@@ -1708,7 +1781,7 @@ document.addEventListener('click', e => {
       document.getElementById('resume-edit-btn').hidden = true;
       document.getElementById('resume-apply-btn').hidden = true;
       document.getElementById('resume-cancel-edit-btn').hidden = true;
-      _resumeData = null; _diffData = null; _diffVisible = false; _resumeMarkdown = null;
+      _resumeData = null; _diffData = null; _diffVisible = false; _resumeMarkdown = null; _atsScore = null;
       stopProgress();
     }
     if (k === 'prep') { $('#prep-round').value = ''; $('#prep-out-wrap').hidden = true; const pdl = document.getElementById('prep-dl'); if (pdl) pdl.hidden = true; }
@@ -2013,6 +2086,8 @@ document.getElementById('add-selected-context').addEventListener('click', async 
 let _discConfig = null;
 let _discResults = [];
 let _discDropped = [];
+let _discDroppedTotal = 0;
+let _discDroppedTally = null;
 let _discFilter = 'all';
 let _discPoll = null;
 
@@ -2075,19 +2150,50 @@ function renderDiscoverSources() {
   const wrap = $('#disc-sources');
   if (!wrap || !_discConfig) return;
   const srcs = _discConfig.sources || [];
-  wrap.innerHTML = srcs.map((s, i) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:6px 8px;border-bottom:1px solid var(--border);font-size:13px">
-      <input type="checkbox" class="disc-src-on" data-i="${i}" ${s.enabled !== false ? 'checked' : ''} />
-      <span style="flex:0 0 118px;color:var(--muted)">${esc(s.type)}</span>
-      <span style="flex:0 0 150px;font-family:monospace">${esc(s.slug)}</span>
-      <span style="flex:1">${esc(s.name || s.slug)}</span>
-      <button class="ghost btn-sm disc-src-test" data-i="${i}">Test</button>
-      <button class="ghost btn-sm disc-src-del" data-i="${i}" style="color:var(--red)">✕</button>
-    </div>`).join('') || '<p class="hint">No sources yet.</p>';
+  const q = ($('#disc-src-search')?.value || '').toLowerCase();
+
+  // Group headers carry a bulk toggle, because at ~200 sources switching a whole bloc off
+  // (say every VC portfolio) one checkbox at a time isn't realistic.
+  const groups = {};
+  srcs.forEach((s, i) => (groups[s.group || 'ungrouped'] = groups[s.group || 'ungrouped'] || []).push({ s, i }));
+
+  const sections = Object.keys(groups).sort().map(g => {
+    const rows = groups[g].filter(({ s }) =>
+      !q || (s.name + ' ' + s.slug + ' ' + s.type).toLowerCase().includes(q));
+    if (!rows.length) return '';
+    const on = groups[g].filter(({ s }) => s.enabled !== false).length;
+    return `
+      <div class="src-group-head">
+        <span>${esc(g)}</span>
+        <span class="src-count">${on}/${groups[g].length} on</span>
+        <button class="ghost btn-sm disc-grp-toggle" data-g="${esc(g)}" data-on="${on === groups[g].length ? '1' : '0'}"
+          style="margin-left:auto">${on === groups[g].length ? 'Disable all' : 'Enable all'}</button>
+      </div>` + rows.map(({ s, i }) => `
+      <div class="src-row">
+        <input type="checkbox" class="disc-src-on" data-i="${i}" ${s.enabled !== false ? 'checked' : ''} />
+        <span class="src-type">${esc(s.type)}</span>
+        <span class="src-slug">${esc(s.slug)}</span>
+        <span class="src-name">${esc(s.name || s.slug)}</span>
+        <span class="src-meta" title="${esc(s.verified && s.verified.sample || '')}">${
+          s.verified && s.verified.count != null ? `${s.verified.count} jobs · ${esc(s.verified.at || '')}` : ''}</span>
+        <button class="ghost btn-sm disc-src-test" data-i="${i}">Test</button>
+        <button class="ghost btn-sm disc-src-del" data-i="${i}" style="color:var(--red)">✕</button>
+      </div>`).join('');
+  }).join('');
+
+  wrap.innerHTML = sections || (srcs.length ? '<p class="hint">Nothing matches that search.</p>' : '<p class="hint">No sources yet.</p>');
+
+  wrap.querySelectorAll('.disc-grp-toggle').forEach(b => b.addEventListener('click', async () => {
+    const g = b.dataset.g, turnOff = b.dataset.on === '1';
+    _discConfig.sources.forEach(s => { if ((s.group || 'ungrouped') === g) s.enabled = !turnOff; });
+    await saveDiscoverConfig();
+    renderDiscoverSources();
+  }));
 
   wrap.querySelectorAll('.disc-src-on').forEach(cb => cb.addEventListener('change', async () => {
     _discConfig.sources[+cb.dataset.i].enabled = cb.checked;
     await saveDiscoverConfig();
+    renderDiscoverSources();   // keep the group's "on/total" count honest
   }));
   wrap.querySelectorAll('.disc-src-del').forEach(b => b.addEventListener('click', async () => {
     _discConfig.sources.splice(+b.dataset.i, 1);
@@ -2120,11 +2226,15 @@ async function loadDiscoverResults() {
   const d = await api('/api/discover/results');
   _discResults = d.results || [];
   _discDropped = d.dropped || [];
+  _discDroppedTotal = d.droppedTotal ?? _discDropped.length;
+  _discDroppedTally = d.droppedTally || null;
 
   const s = d.stats || {};
   const when = d.lastRun ? new Date(d.lastRun).toLocaleString() : 'never';
+  const took = d.lastRunMs ? ` in ${(d.lastRunMs / 1000).toFixed(0)}s` : '';
+  const boards = s.sourcesFetched ? `${s.sourcesFetched} boards · ` : '';
   $('#disc-meta').innerHTML = d.lastRun
-    ? `Last run <strong>${esc(when)}</strong> · fetched ${s.fetched ?? 0} postings · ${s.passedStage1 ?? 0} passed the filter · ${s.graded ?? 0} graded · ${s.alreadySeen ?? 0} already seen`
+    ? `Last run <strong>${esc(when)}</strong>${esc(took)} · ${esc(boards)}fetched ${s.fetched ?? 0} postings · ${s.passedStage1 ?? 0} passed the filter · ${s.graded ?? 0} graded · ${s.alreadySeen ?? 0} already seen`
     : 'Never run. Hit <strong>Run now</strong> to fetch your first batch.';
 
   const errWrap = $('#disc-errors');
@@ -2157,8 +2267,10 @@ function renderDiscoverChips() {
   });
   const defs = [['all', 'All'], ['APPLY', 'Apply'], ['MAYBE', 'Maybe'], ['ungraded', 'Ungraded'], ['hidden', 'Hidden']];
   $('#disc-filter-chips').innerHTML = defs.map(([k, label]) =>
-    `<button class="ghost btn-sm disc-chip${_discFilter === k ? ' active' : ''}" data-f="${k}"
-      style="${_discFilter === k ? 'border-color:var(--accent,#7c5cff);color:var(--accent,#7c5cff)' : ''}">${label} ${counts[k]}</button>`).join('');
+    // No inline colour here — `.disc-chip.active` owns the active look. An inline
+    // rule would beat the class and paint the label the same colour as its own
+    // background, making the selected chip read as blank.
+    `<button class="btn-sm disc-chip${_discFilter === k ? ' active' : ''}" data-f="${k}">${label} ${counts[k]}</button>`).join('');
   $$('.disc-chip').forEach(c => c.addEventListener('click', () => {
     _discFilter = c.dataset.f; renderDiscoverChips(); renderDiscoverResults();
   }));
@@ -2173,7 +2285,7 @@ function renderDiscoverResults() {
     if (_discFilter === 'ungraded') return !r.verdict;
     return r.verdict === _discFilter;
   });
-  if (!rows.length) { wrap.innerHTML = '<p class="hint">Nothing here yet.</p>'; return; }
+  if (!rows.length) { wrap.innerHTML = '<div class="empty" data-emoji="\u{1F52D}"><span class="empty-title">Nothing new this time</span>Every board was checked. New postings will show up here.</div>'; return; }
 
   wrap.innerHTML = rows.map(r => `
     <div class="disc-card" data-uid="${esc(r.uid)}" style="border:1px solid var(--border);border-left:3px solid ${discVerdictColour(r.verdict)};border-radius:var(--radius-sm,8px);padding:10px 12px;margin-bottom:8px;background:var(--surface-2)">
@@ -2256,11 +2368,21 @@ function renderDiscoverDropped() {
   const q = ($('#disc-dropped-search')?.value || '').toLowerCase();
   const rows = _discDropped.filter(d =>
     !q || (d.title + ' ' + d.company).toLowerCase().includes(q)).slice(0, 300);
-  const tally = {};
-  _discDropped.forEach(d => { const k = String(d.reason).split(':')[0]; tally[k] = (tally[k] || 0) + 1; });
+
+  // The tally comes from the server and covers the FULL audit trail on disk; the rows here are
+  // the most recent slice. Counting the slice would understate what was actually thrown away.
+  let tally = _discDroppedTally;
+  if (!tally) {
+    tally = {};
+    _discDropped.forEach(d => { const k = String(d.reason).split(':')[0]; tally[k] = (tally[k] || 0) + 1; });
+  }
+  const truncated = _discDroppedTotal > _discDropped.length
+    ? ` <span style="color:var(--muted)">(searching the most recent ${_discDropped.length})</span>` : '';
+
   $('#disc-dropped').innerHTML =
-    `<p class="hint">${_discDropped.length} dropped · ` +
-    Object.entries(tally).map(([k, v]) => `${esc(k)}: ${v}`).join(' · ') + '</p>' +
+    `<p class="hint">${_discDroppedTotal} dropped · ` +
+    Object.entries(tally).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${esc(k)}: ${v}`).join(' · ') +
+    truncated + '</p>' +
     (rows.length ? rows.map(d => `
       <div style="display:flex;gap:10px;font-size:12.5px;padding:4px 0;border-bottom:1px solid var(--border)">
         <span style="flex:0 0 150px;color:var(--muted)">${esc(d.reason)}</span>
@@ -2385,6 +2507,7 @@ $('#disc-search-loc').addEventListener('keydown', e => { if (e.key === 'Enter') 
 
 $('#disc-refresh').addEventListener('click', () => { loadDiscoverConfig(); loadDiscoverResults(); });
 $('#disc-dropped-search').addEventListener('input', renderDiscoverDropped);
+$('#disc-src-search').addEventListener('input', renderDiscoverSources);
 
 $('#disc-save-filters').addEventListener('click', async () => {
   const lines = id => $(id).value.split('\n').map(s => s.trim()).filter(Boolean);

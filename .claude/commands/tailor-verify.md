@@ -15,10 +15,23 @@ RESOLVE TARGET:
 - If no resume file is found, say so plainly and stop.
 
 LOAD SOURCES OF TRUTH (the ONLY things a claim may rest on):
-1. CLAUDE.md — `## Achievement bank`, `## Snapshot`, `## Tailoring lessons`, and `## Fabrication log`.
-2. The matching base resume PDF in `resumes/` (EM or QA, per the resume's lean).
+1. CLAUDE.md — `## Achievement bank`, `## Snapshot`, `## Tailoring lessons`, `## Résumé identity
+   lock`, and `## Fabrication log`.
+2. The matching base résumé **markdown** in `resumes/` — `resume-em.md`, `resume-qa.md`,
+   `resume-senior-em.md` or `resume-tpm.md`, per the résumé's lane. These `.md` files are the
+   authoritative editable sources. (There are no base PDFs.)
 3. `companies/<slug>.md` if present.
-4. `resumes/resume-skeleton.md` — the locked format.
+4. `resumes/resume-skeleton.md` — the locked format **and the single source for all format
+   numbers** (section order, bullet density, length budget). Read the figures from that file;
+   never assert them from memory.
+5. **`output/<slug>/known-facts-*.md` — facts Yash supplied himself via the Tailor page's known-facts
+   box. These are FULLY TRUSTED, exactly like the achievement bank.** He typed them because the bank
+   is incomplete, which is what the box is for: *"there are a 100 other things i did that are not in
+   the bank or i don't remember them."* A claim grounded in a known-facts file is **verified (✅), not
+   unverified** — never report it as unsourced, and never imply it was invented. Check only that the
+   résumé uses it at the level asserted and has not amplified it (the Fabrication log's
+   don't-inflate-a-supplied-fact rule). If a known-facts file exists but its content is missing from
+   the bank, say so once as a housekeeping note — `/tailor` should have banked it — and continue.
 Also load the captured JD (`output/<slug>/jd-*.md`) — context only; the JD is NOT a source of truth
 and a JD keyword is NEVER grounding for a claim.
 
@@ -51,12 +64,16 @@ Check every line against CLAUDE.md `## Fabrication log`. Any match → BANNED �
 This includes Core Competencies labels and Technical Skills entries (e.g. "Web" as automation scope,
 "DORA metrics", "deployment frequency", "internal developer platform", "Staff Engineer", "Spring Boot").
 
-== AXIS D — FORMAT (vs resumes/resume-skeleton.md) ==
-- Section set & order match Pattern B (Profile → Core Competencies → Professional Experience →
-  [Selected Projects] → Education → Technical Skills → Languages & Recognition). Flag missing/extra/reordered.
-- Bullet density per role within range (DH 8–10, MayTek 4, Atomants 5).
-- LENGTH, measured not attested: count body words and bullet/paragraph lines. Over ~750 words OR ~48
-  lines → OVER-BUDGET ⚠️ (won't fit 2 pages). Report the actual counts.
+== AXIS D — FORMAT (vs resumes/resume-skeleton.md — read its numbers, don't recall them) ==
+- Section set & order match Pattern B. Flag missing/extra/reordered.
+- Bullet density per role within the skeleton's stated range.
+- PROFILE LENGTH, counted: against the skeleton's stated word cap. Read the figure from the
+  skeleton; do not restate it here. Report the actual count.
+- LENGTH, measured not attested: count body words and bullet/paragraph lines, and compare against
+  the skeleton's length budget. Over budget → OVER-BUDGET ⚠️. Report the actual counts.
+- HEADLINE: matches the locked lane headline in CLAUDE.md `## Résumé identity lock` — locked title
+  intact, descriptors drawn from the approved vocabulary. A never-held title in the headline is a
+  ⛔ under Axis C. Note that this lock is advisory and reported, per the identity-lock section.
 
 == AXIS E — PLAIN LANGUAGE (measured, not judged) ==
 Run `node plain.js <the resume file>` and report the score, verdict and every flagged line. Do NOT
@@ -83,6 +100,13 @@ benefit clauses, rule-of-three "-ing" lists, puff phrases, over-long sentences, 
 5. Write the full report to `output/<slug>/verify-<YYYYMMDD>.md`.
 6. As the VERY LAST line, emit exactly (the UI parses it):
    `<!-- VERIFY: verdict=<PASS|BLOCK> banned=<n> implausible=<n> unverified=<n> over_budget=<yes|no> plain=<int 0-100> -->`
+
+SCOPE OF "BLOCK" — per `### THE TOOL NEVER BLOCKS AN APPLICATION` in CLAUDE.md. BLOCK is a verdict
+on specific LINES, never on the application. It means "these lines are not defensible in the room —
+here they are and here are the fixes". It never withholds the résumé, never suppresses the
+downloads, and never tells Yash not to apply. Honesty is the one thing this gate holds firm on,
+because a fabricated claim damages him irreversibly — but it flags and explains, and the send is
+his call. Report, hand over the files, move on; do not repeat a warning he has already heard.
 
 This runs in a non-chat UI — output is displayed, not replied to. End on the verdict and the fix
 checklist. Do NOT end by asking what to do next or offering to do more. Never end on a question

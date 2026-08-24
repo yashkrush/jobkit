@@ -20,16 +20,24 @@
   </svg>
   <span>jobkit</span>
 </div>
+  <!-- Grouped so nine destinations read as three jobs: track what's live, find
+       something new, get it out the door. -->
   <nav class="tabs">
-    <button class="tab active" data-tab="pipeline">Pipeline</button>
-    <button class="tab" data-tab="companies">Companies</button>
-    <button class="tab" data-tab="discover">Discover</button>
-    <button class="tab" data-tab="match">Check Match</button>
-    <button class="tab" data-tab="tailor">Tailor</button>
-    <button class="tab" data-tab="prep">Prep</button>
-    <button class="tab" data-tab="log">Log</button>
-    <button class="tab" data-tab="intake">Intake</button>
-    <button class="tab" data-tab="setup">Setup</button>
+    <div class="tab-group" title="What's already in flight">
+      <button class="tab active" data-tab="pipeline"><span class="tab-ico">📊</span>Pipeline</button>
+      <button class="tab" data-tab="companies"><span class="tab-ico">🏢</span>Companies</button>
+    </div>
+    <div class="tab-group" title="Find something worth applying to">
+      <button class="tab" data-tab="discover"><span class="tab-ico">🔭</span>Discover</button>
+      <button class="tab" data-tab="match"><span class="tab-ico">🎯</span>Match</button>
+    </div>
+    <div class="tab-group" title="Get it out the door">
+      <button class="tab" data-tab="tailor"><span class="tab-ico">✍️</span>Tailor</button>
+      <button class="tab" data-tab="prep"><span class="tab-ico">🎤</span>Prep</button>
+      <button class="tab" data-tab="log"><span class="tab-ico">📝</span>Log</button>
+      <button class="tab" data-tab="intake"><span class="tab-ico">📥</span>Intake</button>
+      <button class="tab" data-tab="setup"><span class="tab-ico">⚙️</span>Setup</button>
+    </div>
   </nav>
   <div class="status-dot" id="status-dot" title="ready"></div>
 </header>
@@ -37,23 +45,36 @@
 <main>
   <!-- PIPELINE -->
   <section class="panel active" id="panel-pipeline">
-    <div class="panel-header"><div class="panel-title">Pipeline</div><button class="ghost btn-sm" id="pipeline-refresh">Refresh</button></div>
+    <!-- Opens on effort rather than outcomes: the greeting and the counts you
+         control come first, the list of live processes after. -->
+    <div class="hero">
+      <div class="hero-greet" id="hero-greet">Welcome back</div>
+      <div class="hero-line" id="hero-line">Loading your pipeline…</div>
+    </div>
+    <div class="panel-header">
+      <div class="panel-title">Pipeline<small>Everything currently in flight</small></div>
+      <button class="ghost btn-sm" id="pipeline-refresh">Refresh</button>
+    </div>
     <div class="rendered" id="pipeline-view">Loading…</div>
   </section>
 
   <!-- DISCOVER -->
   <section class="panel" id="panel-discover">
     <div class="panel-header">
-      <div class="panel-title">Discover — job sourcing</div>
+      <div class="panel-title">Discover<small>Fresh roles from public job boards — free to browse</small></div>
       <button class="ghost btn-sm" id="disc-refresh">Refresh</button>
       <button class="primary btn-sm" id="disc-run">Check what's new</button>
     </div>
-    <p class="hint">
-      Two ways to use this, and <strong>both are free</strong> — fetching job boards costs nothing.<br>
-      <strong>Search</strong> (below) — look for specific titles right now, across everything currently posted.<br>
-      <strong>Check what's new</strong> (button above) — uses your saved filters and shows only postings you haven't seen before.<br>
-      The only thing that costs anything is pressing <strong>Grade</strong> on a role, which runs the real APPLY / MAYBE / SKIP analysis.
-    </p>
+
+    <details class="explain">
+      <summary>How this works — and what costs anything</summary>
+      <div class="explain-body">
+        <p>Fetching job boards is <strong>free</strong>. There are two ways in:</p>
+        <p><strong>Search</strong> — look for specific titles right now, across everything currently posted, ignoring your saved filters.</p>
+        <p><strong>Check what's new</strong> — uses your saved filters and shows only postings you haven't seen before.</p>
+        <p>The only paid step is pressing <strong>Grade</strong> on a role, which runs the real APPLY / MAYBE / SKIP analysis. Nothing grades itself unless you tell it to.</p>
+      </div>
+    </details>
 
     <div class="progress-bar" id="disc-progress" hidden>
       <div class="progress-spinner"></div>
@@ -63,20 +84,20 @@
     <div id="disc-meta" class="hint" style="margin:10px 0"></div>
     <div id="disc-errors" hidden style="margin-bottom:12px;padding:10px 12px;border:1px solid var(--amber,#e0a23c);border-radius:8px;background:rgba(224,162,60,0.07);font-size:13px"></div>
 
-    <div style="border:1px solid var(--border);border-radius:var(--radius,10px);padding:12px 14px;margin-bottom:16px;background:var(--surface-2)">
-      <label style="margin-top:0">Search — free, anytime</label>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+    <div class="search-card">
+      <div class="search-card-title">🔍 Search every board, right now</div>
+      <div class="search-card-fields">
         <div style="flex:2;min-width:240px">
-          <label style="margin-top:0;font-size:12px;opacity:.75">Job titles <span style="font-weight:400">— comma-separated</span></label>
+          <label style="margin-top:0">Job titles <span>— comma-separated</span></label>
           <input type="text" id="disc-search-q" placeholder="head of quality, director of test, engineering manager" />
         </div>
         <div style="flex:1;min-width:160px">
-          <label style="margin-top:0;font-size:12px;opacity:.75">Locations <span style="font-weight:400">— blank = anywhere</span></label>
+          <label style="margin-top:0">Locations <span>— blank = anywhere</span></label>
           <input type="text" id="disc-search-loc" value="berlin, remote, germany" placeholder="berlin, remote" />
         </div>
-        <button class="primary btn-sm" id="disc-search-go" style="margin-bottom:1px">Search</button>
+        <button class="primary" id="disc-search-go">Search</button>
       </div>
-      <p class="hint" style="margin:6px 0 0">Searches everything currently posted on your boards, ignoring your saved filters. Costs nothing. Press <strong>Grade</strong> on a row for the real verdict — that's the only paid step.</p>
+      <p class="hint" style="margin:6px 0 0">Free. Ignores your saved filters. <strong>Grade</strong> on a row is the only paid step.</p>
       <div id="disc-search-meta" class="hint" style="margin-top:8px"></div>
       <div id="disc-search-results" style="margin-top:8px"></div>
     </div>
@@ -101,11 +122,13 @@
           <label class="inline-check"><input type="checkbox" id="disc-enabled" /> Run on a schedule (needs the laptop awake)</label>
         </div>
       </div>
-      <p class="hint" style="margin-top:0">
-        <strong>Auto-grade per run = 0</strong> means nothing is ever graded without you pressing Grade. That's the recommended setting: everything stays free and you spend one Claude call at a time, on roles you've chosen.
-        Raise it only if you'd rather wake up to verdicts already done.
-        The scheduled run is off by default — a sleeping laptop skips it anyway, so <strong>Check what's new</strong> is the reliable way to run it.
-      </p>
+      <details class="explain" style="margin:12px 0">
+        <summary>What these four settings actually do</summary>
+        <div class="explain-body">
+          <p><strong>Auto-grade per run = 0</strong> means nothing is ever graded without you pressing Grade. That's the recommended setting — everything stays free, and you spend one Claude call at a time on roles you picked. Raise it only if you'd rather wake up to verdicts already done.</p>
+          <p>The <strong>scheduled run is off</strong> by default. A sleeping laptop skips it anyway, so <strong>Check what's new</strong> is the reliable way to run it.</p>
+        </div>
+      </details>
       <div style="display:flex;gap:14px;flex-wrap:wrap">
         <div style="flex:1;min-width:240px">
           <label>Title must contain one of <span style="opacity:.6;font-weight:400">— one per line</span></label>
@@ -124,7 +147,7 @@
           <textarea id="disc-location-exclude" rows="10"></textarea>
         </div>
       </div>
-      <p class="hint" style="margin-top:0">A region on the right vetoes the posting, unless a region on the left is also named — so "Remote, US" is dropped but "Remote, US; Remote, Germany" is kept. Plain "Remote", "Anywhere" and "Distributed" are always kept.</p>
+      <p class="hint" style="margin-top:10px">A region on the right vetoes a posting unless a region on the left is also named — "Remote, US" is dropped, "Remote, US; Remote, Germany" is kept. Plain "Remote", "Anywhere" and "Distributed" always survive.</p>
       <div class="row" style="margin-top:4px">
         <label class="inline-check"><input type="checkbox" id="disc-german" /> Drop roles that require fluent German</label>
         <label class="inline-check"><input type="checkbox" id="disc-english" /> Drop non-English descriptions</label>
@@ -134,7 +157,8 @@
 
     <details class="analysis-details">
       <summary>Sources — job boards being scanned</summary>
-      <p class="hint">Public, key-free ATS endpoints. Add a company by picking its board type and slug — the slug is the company's name in its careers URL. Test before saving so a typo doesn't turn into silence.</p>
+      <p class="hint">Public, key-free ATS endpoints. The slug is the company's name in its careers URL — test before saving, so a typo doesn't turn into silence. Bulk-validate a list of names with <code>node tools/discover-sources.js</code>.</p>
+      <input id="disc-src-search" type="text" placeholder="Filter sources by name, slug or type…" style="margin-bottom:8px" />
       <div id="disc-sources"></div>
       <div class="row" style="margin-top:10px;align-items:flex-end;gap:8px;flex-wrap:wrap">
         <div style="flex:0 0 160px"><label>Type</label><select id="disc-new-type"></select></div>
@@ -149,8 +173,8 @@
 
   <!-- CHECK MATCH -->
   <section class="panel" id="panel-match">
-    <div class="panel-header"><div class="panel-title">Check Match — Should I apply?</div></div>
-    <p class="hint">Paste a job description (or URL) from LinkedIn or anywhere. Get an honest APPLY / MAYBE / SKIP verdict and a match score against your profile — no resume built. If it's a yes, send it straight to Tailor.</p>
+    <div class="panel-header"><div class="panel-title">Match<small>Should I even apply? An honest read before you spend effort</small></div></div>
+    <p class="hint">Paste a job description or URL. You get an APPLY / MAYBE / SKIP verdict and a match score — no resume built yet. If it's a yes, send it straight to Tailor.</p>
     <label>Job description (text or URL)</label>
     <textarea id="match-jd" rows="12" placeholder="Paste JD or URL…"></textarea>
     <div class="row">
@@ -173,8 +197,8 @@
 
   <!-- TAILOR -->
   <section class="panel" id="panel-tailor">
-    <div class="panel-header"><div class="panel-title">Tailor</div></div>
-    <p class="hint">Paste the JD or a URL. Produces a quality-gated, ATS-checked resume.</p>
+    <div class="panel-header"><div class="panel-title">Tailor<small>A quality-gated, ATS-checked resume for one specific role</small></div></div>
+    
     <label>Job description (text or URL)</label>
     <textarea id="tailor-jd" rows="12" placeholder="Paste JD or URL…"></textarea>
     <label>Known facts <span style="opacity:.6;font-weight:400">— things you know that aren't in the bank yet (optional)</span></label>
@@ -235,7 +259,7 @@
 
   <!-- PREP -->
   <section class="panel" id="panel-prep">
-    <div class="panel-header"><div class="panel-title">Prep</div></div>
+    <div class="panel-header"><div class="panel-title">Prep<small>Walk in knowing what they'll ask</small></div></div>
     <label>Company</label>
     <select id="prep-company"></select>
     <label>Round / focus (e.g. "system design", "hiring manager round")</label>
@@ -258,8 +282,8 @@
 
   <!-- LOG -->
   <section class="panel" id="panel-log">
-    <div class="panel-header"><div class="panel-title">Log</div></div>
-    <p class="hint">Pick an existing company or type a new name; the file will be created if missing.</p>
+    <div class="panel-header"><div class="panel-title">Log<small>Keep the record straight while it's fresh</small></div></div>
+    <p class="hint">Pick a company or type a new name — the file is created if it doesn't exist.</p>
     <label>Company (existing)</label>
     <select id="log-company-existing"><option value="">— pick —</option></select>
     <label>Or new company name (lowercase, hyphens)</label>
@@ -280,8 +304,8 @@
 
   <!-- INTAKE -->
   <section class="panel" id="panel-intake">
-    <div class="panel-header"><div class="panel-title">Intake</div></div>
-    <p class="hint">Paste raw notes or a summary block. The agent routes each piece to the right company file and updates the pipeline.</p>
+    <div class="panel-header"><div class="panel-title">Intake<small>Dump messy notes, get them filed correctly</small></div></div>
+    <p class="hint">Paste raw notes or a summary. Each piece is routed to the right company file and the pipeline is updated.</p>
     <textarea id="intake-notes" rows="14" placeholder="Paste raw notes…"></textarea>
     <div class="row"><button class="primary" id="intake-run">Run /intake</button></div>
     <div class="output-block" id="intake-out-wrap" hidden>
@@ -292,7 +316,7 @@
 
   <!-- SETUP -->
   <section class="panel" id="panel-setup">
-    <div class="panel-header"><div class="panel-title">Setup — your profile</div></div>
+    <div class="panel-header"><div class="panel-title">Setup<small>The grounding corpus everything else reads from</small></div></div>
     <div id="setup-welcome" class="hint" hidden style="padding:12px 14px;background:var(--surface-2);border:1px solid var(--border);border-left:3px solid #6d4aff;border-radius:var(--radius-sm);margin-bottom:14px">
       <strong>Welcome to JobKit.</strong> Before you can tailor or prep, JobKit needs your profile.
       Paste your CV or LinkedIn below and it'll draft your <code>CLAUDE.md</code> — the grounding
@@ -343,7 +367,7 @@
   <!-- COMPANIES -->
   <section class="panel" id="panel-companies">
     <div class="panel-header">
-      <div class="panel-title">Companies</div>
+      <div class="panel-title">Companies<small>The accumulating context behind every process</small></div>
       <button class="ghost btn-sm" id="companies-refresh">Refresh</button>
     </div>
 

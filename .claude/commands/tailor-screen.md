@@ -28,10 +28,38 @@ STEP 3 — SCORE & DIAGNOSE
 - SCREENING SCORE = share of ACHIEVABLE must-haves covered, weighting top-third placement. Report the number.
 - ACHIEVABLE MISSES = achievable keywords missing or buried → these are FIXES (add the standard term where
   it's genuinely true, ideally in the top third). List each with the concrete line to add/change.
-- TITLE-LINE MATCH = does the headline signal the JD's role title in standard terms? (ATS often weights it.)
+- TITLE-LINE MATCH = do the headline DESCRIPTORS signal the JD's role in standard terms? Only the three
+  descriptors after the em-dash are tunable, and only from the approved vocabulary — the locked title
+  itself is chosen by lane and never by JD (CLAUDE.md `## Résumé identity lock`). So this line measures
+  descriptor fit, never the title. **Never propose restyling the headline INTO the JD's title**; if a
+  fix would require that, it is not an available fix. TITLE CREDIBILITY below measures the opposite risk.
 - DOMAIN-GAP CEILING = how many role-defining keywords are unfakeable zeros. If the role is DEFINED by a
   domain the candidate lacks (many role-specific zeros), say so plainly: screening risk is high regardless of how
   good the transferable match is, and this is an apply/skip signal, not something the resume can fix.
+
+STEP 3b — TITLE CREDIBILITY (added 2026-08-23 — the blind spot that let 0-for-7 through)
+Keyword coverage alone could not see why applications died. Vinted scored **READY / 90** and was rejected
+at screening; Mapbox scored 91 and was rejected at screening. High coverage, wrong instrument. What the
+score missed: a recruiter's first filter on a titled req is *"has this person plausibly held this kind of
+role?"* — and no amount of keyword density answers it.
+
+Measure and report, in one short block:
+- **Lane conversion — read the figures from CLAUDE.md `## Apply/skip lessons` → LANE CONVERSION DATA
+  (the canonical record; do not quote them from memory, they change as outcomes land).** State which
+  lane this JD sits in and that lane's historical rate. This is the single most predictive number
+  available — put it in the report.
+- **Headline title vs. held titles:** does the résumé lead with the locked title for its lane —
+  `Engineering Manager` or `Quality Engineering Manager` (both real) — or a title never held? The three
+  that led with a never-held title returned 0 interviews. See CLAUDE.md `## Résumé identity lock`.
+- **Seniority distance:** the JD's level vs. Yash's real scope (one full-stack team direct, delivery
+  support to 5+, standards reach across 17 teams / ~50 services). Note when the JD wants larger direct
+  headcount — the N26 rejection reason.
+- **Run `node consistency.js <target> <slug>`** and fold its verdict in — it reports whether this résumé
+  reads like the same person as everything already sent, especially to a company applied to before.
+
+Report as **TITLE CREDIBILITY: STRONG | STRETCH | THIN**, with the one-line reason and the lane number.
+This is **information for Yash's decision, never a stop** — see "THE TOOL NEVER BLOCKS AN APPLICATION" in
+CLAUDE.md. THIN means "these are the odds", not "don't apply", and it never suppresses the résumé build.
 
 STEP 4 — VERDICT
 - READY — achievable coverage high, key terms in top third, title matches, few/no domain zeros.
@@ -42,9 +70,13 @@ Apply the FIX-bucket changes you safely can (add the genuine standard term, pref
 and report the before/after score.
 
 OUTPUT: coverage table (achievable: present/top-third/standard; domain-gap: absent ✓), score, the
-fix list, title-match, the domain ceiling, the verdict. Write the report to
-`output/<slug>/screen-<YYYYMMDD>.md`. As the VERY LAST line emit exactly:
-`<!-- SCREEN: verdict=<READY|FIX|SCREEN-RISK> score=<int 0-100> achievable_misses=<n> domain_zeros=<n> -->`
+fix list, title-match, **title credibility + lane conversion rate**, the domain ceiling, the verdict.
+Write the report to `output/<slug>/screen-<YYYYMMDD>.md`. As the VERY LAST line emit exactly:
+`<!-- SCREEN: verdict=<READY|FIX|SCREEN-RISK> score=<int 0-100> achievable_misses=<n> domain_zeros=<n> title_credibility=<STRONG|STRETCH|THIN> -->`
+
+NEVER A BLOCKER. This gate measures and reports; it does not decide whether Yash applies. No verdict
+here — not SCREEN-RISK, not THIN title credibility, not a poor lane rate — suppresses the résumé or
+withholds the files. Report the odds in one line, hand over the work, and let him choose.
 
 This runs in a non-chat UI — output is displayed, not replied to. End on the verdict and the fix list.
 Never invent a keyword the candidate lacks to raise the score — a domain zero stays a zero (and the Fabrication log

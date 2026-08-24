@@ -146,9 +146,8 @@ prompt-programs the agent executes:
 ```
 .claude/commands/
   onboard.md         # generate a CLAUDE.md profile from an uploaded resume
-  tailor.md          # full tailor pipeline (verdict → CV → optional cover letter)
-  tailor-analyse.md  # step 1: fast analysis only
-  tailor-build.md    # step 2: build full resume after APPLY verdict
+  tailor-analyse.md  # fast apply/skip analysis, no build ("Check Match")
+  tailor.md          # the builder: tailored CV + optional cover letter
   tailor-screen.md   # independent gate: screening-readiness
   tailor-verify.md   # independent gate: grounding / fact-check against the achievement bank
   prep.md            # interview prep pack

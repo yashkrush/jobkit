@@ -4,7 +4,15 @@
   "private": true,
   "description": "Local dark-mode UI over the jobkit slash commands (headless Claude Code).",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node --watch-path=./server.js --watch-path=./ats.js --watch-path=./discover.js server.js",
+    "ats": "node ats.js",
+    "plain": "node plain.js",
+    "consistency": "node consistency.js",
+    "check": "node plain.js \"$0\" && node consistency.js \"$0\"",
+    "discover": "node discover.js",
+    "batch": "cd tools && node rank-batch.js",
+    "presend": "node presend.js"
   },
   "dependencies": {
     "docx": "^9.7.1",

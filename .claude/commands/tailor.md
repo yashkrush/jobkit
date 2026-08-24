@@ -1,311 +1,224 @@
 ---
 description: Tailor a full resume to a JD, quality-gate it, and produce downloadable files
 ---
-Use CLAUDE.md as my context. Read the relevant companies/<slug>.md if it exists — pay
-special attention to "## Resumes sent" (what was tried before and how it performed).
-Read the matching resume PDF from resumes/ — both were built by Claude so you know
-the full structure and can rebuild cleanly.
+The single resume-building command. The UI's Tailor tab calls this; the two quality gates
+(`/tailor-screen`, `/tailor-verify`) are run by the SERVER as independent passes afterwards.
 
-Arguments: JD text or URL, optionally with --cover-letter, --research, and/or --senior flags.
+## SOURCES — read these, do not restate them
+CLAUDE.md is the source of truth for every rule below. Read it and follow the named sections;
+this file tells you the STEPS and the OUTPUT CONTRACT, not the policy.
+- `## Achievement bank` + `## Snapshot` — the only facts you may use.
+- `## Fabrication log` — hard bans. Never use a flagged claim, however well it fits the JD.
+- `## Résumé identity lock` — the headline, the locked title, the descriptor vocabulary, the
+  profile word cap, and the locked constants (13 years, the DH title, "working towards B1").
+- `## Tailoring lessons` — framing rules learned from resumes actually submitted. Apply them.
+  They never override the Fabrication log or the Honesty rules.
+- `## Positioning`, `## Voice rules`, `## Honesty rules`, `## Status / framing`.
+- `### Plain-language rule — RÉSUMÉS` — measured by `plain.js`, not eyeballed.
+- `## Apply / skip filter` → `### THE TOOL NEVER BLOCKS AN APPLICATION`. Nothing here withholds
+  a résumé. If asked to build, build; state risk in one line and hand over the files.
+
+Also read:
+- `resumes/resume-skeleton.md` — the locked structure and **the single source for all numbers**
+  (section order, bullet density per role, length budget). Never restate those numbers from memory.
+- The base résumé for the lane (see LANE below) — these are **markdown** files in `resumes/`.
+- `companies/<slug>.md` if it exists — especially `## Resumes sent`.
+
+Arguments: JD text or URL, optionally `--cover-letter`, `--research`, `--senior`, `--tpm`.
 $ARGUMENTS
 
-SENIOR-TRACK FLAG — if $ARGUMENTS contains `--senior`:
-Build from the **Senior-track bucket** in CLAUDE.md ("## Senior-track framing"). Use the base résumé
-`resumes/resume-senior-em.md` (NOT resume-em.md / resume-qa.md), foreground the manager-of-managers scope
-(the ~22-engineer org; 2 EMs + platform leads as direct reports), and lead at org-leadership altitude.
-TITLE LOCK still applies — never write "Senior EM" / "Director" as a held title; surface SCOPE, not a title.
-Every hard rule and gate below still applies: the senior résumé must stay backable. Do NOT hardcode the
-manager-of-managers tenure — phrase it flexibly to the JD.
-If `--senior` is ABSENT but the JD's scope clearly reads senior (managing managers / org leadership /
-multi-team), add ONE line at the top of Step 9: "This JD reads as senior-scope — consider re-running with
-the Senior-track profile." A suggestion only; never switch profiles on your own.
+## LANE — pick the base résumé, then keep the headline locked to it
+Route by SCOPE, not literal title, per CLAUDE.md. If `/tailor-analyse` already routed this JD,
+build in THAT lane — Check Match, Tailor and Prep are ONE decision.
 
-TPM LANE FLAG — if $ARGUMENTS contains `--tpm`:
-Build from the **TPM / Technical Program Manager bucket** in CLAUDE.md ("## TPM / Technical Program Manager
-framing"). Use the base résumé `resumes/resume-tpm.md` (NOT resume-em.md / resume-qa.md). Foreground cross-team
-programme & delivery management, dependency/risk management, stakeholder & Product partnership, process definition,
-and data-driven execution — with the market migrations across 10+ squads as the flagship story. Reframe the QMI /
-CFR / Regression-Reliability / TDD-as-DoD / exploratory-testing work as programme-delivery and metrics signals, NOT
-as "quality" (mirror the Operations lesson). People-management is a PLUS here — supporting depth, not the headline.
-In Step 4, REPLACE the QA/test technical-skills categories with programme-oriented ones (as in resume-tpm.md):
-"Programme & Delivery", "Data & Metrics", "Tooling", "Technical Breadth (leadership)" — do NOT emit Test Automation /
-Device & Compatibility categories for this lane. TITLE LOCK still applies — the DH experience title stays
-"Engineering Manager / Quality Engineering Manager"; only the headline title line is TPM-tuned. Never fabricate a
-"Program Manager" title Yash never held, and never claim PM frameworks/certs (RAID logs, RACI, PMP, SAFe) or PM
-tooling not in the base/bank. Every hard rule and gate below still applies. If `--tpm` and `--senior` are BOTH
-present, `--tpm` wins (it is the more specific lane the user selected).
-If `--tpm` is ABSENT but the JD is clearly a program/project-management role (per the TPM bucket's scope test),
-add ONE line at the top of Step 9: "This JD reads as programme-management scope — consider re-running with the TPM
-profile." A suggestion only; never switch profiles on your own.
+| Flag / routing | Base résumé | Section in CLAUDE.md |
+|---|---|---|
+| default, EM-lean | `resumes/resume-em.md` | `## Positioning` |
+| QA / quality-titled | `resumes/resume-qa.md` | `## Positioning` |
+| `--senior` | `resumes/resume-senior-em.md` | `## Senior-track framing` |
+| `--tpm` | `resumes/resume-tpm.md` | `## TPM / Technical Program Manager framing` |
 
-KNOWN FACTS — user-supplied trusted input:
-If $ARGUMENTS contains a block delimited by `<<<KNOWN_FACTS` and `KNOWN_FACTS` (it follows a
-`--known-facts` flag), everything inside it is asserted true by the candidate — facts they know
-that are not yet in the achievement bank. Treat these EXACTLY like the achievement bank: trusted, usable
-verbatim or rephrased, NOT subject to the fabrication guard below. Strip this block out of the JD
-text before parsing the JD in Step 1. Use these facts wherever they genuinely match the JD.
+`--tpm` wins if both flags are present (the more specific lane the user selected).
+If a flag is ABSENT but the JD clearly reads that way, add ONE line at the top of STEP 8
+suggesting a re-run with that profile. A suggestion only — never switch lanes on your own.
 
-SAME-PAGE CONTRACT — Check Match, Tailor and Prep are ONE decision, not three:
-Build in the SAME lane Check Match (/tailor-analyse) routed this JD to, and honour the SAME honest fit
-that verdict was based on. If Check Match returned APPLY, the fit is real on Yash's actual skills — so
-you must NOT manufacture a frame to reach it. If it was MAYBE-with-a-gap, that gap is REPORTED in Step 9,
-never worn in the body (HARD RULE 5). Concretely: when the JD's core identity is hands-on / builder-EM
-("senior IC before management", "review code with a critical eye", "proximity to the codebase", "strong
-hands-on mindset working daily"), do NOT invent a "Hands-on technical leadership" competency or "stays
-close to the code" flourish to screen in — keep the framing at leadership/direction altitude and let the
-gap be a gap. The resume Tailor ships and the gaps Prep scripts must match the verdict Check Match gave.
+**HEADLINE IS NOT A TAILORING SURFACE.** Take the locked headline for the lane verbatim from
+`## Résumé identity lock`. The only tunable part is the three descriptors after the em-dash, and
+only from that section's approved vocabulary. Never lead with a title Yash has not held.
 
-FABRICATION GUARD — read before doing anything else:
-Read CLAUDE.md section "## Fabrication log" if it exists. These are facts previously flagged as
-invented. Do NOT use them under any circumstances, even if they would fit the JD well.
-When drafting the resume in Step 4: if you are about to use ANY fact, metric, or claim not
-explicitly present in the CLAUDE.md achievement bank OR the KNOWN FACTS block above, write
-[VERIFY: your intended claim] as a placeholder instead. Do not invent. A placeholder is better
-than a fabrication.
+## KNOWN FACTS — user-supplied trusted input
+If $ARGUMENTS contains a block delimited by `<<<KNOWN_FACTS` and `KNOWN_FACTS` (following a
+`--known-facts` flag), everything inside is asserted true by the candidate. Treat it EXACTLY like
+the achievement bank: trusted, usable, NOT subject to the fabrication guard. Strip the block out
+of the JD text before parsing in STEP 1.
 
-HARD RULES (override any desire to match the JD — breaking one is a failure, not a near-miss):
-1. TITLE LOCK. The job titles in PROFESSIONAL EXPERIENCE are FIXED facts — use each one exactly as
-   written for that role in CLAUDE.md. NEVER invent, upgrade, or swap a position title to fit the JD
-   (no aspirational re-titling like "Staff Engineer", "Platform EM", or "Principal Engineer" unless
-   that is genuinely the candidate's title in CLAUDE.md). Only the headline TITLE LINE at the very top
-   is role-tunable; the titles inside the experience entries are not.
-2. NO RELABELLING. Describe each achievement as what it ACTUALLY is per CLAUDE.md — do not recast it as
-   a different category of thing to match the JD (e.g. don't rebrand a reporting/metrics tool as an
-   "internal developer platform" or "Platform-as-a-Product"). If the JD wants X and CLAUDE.md says I
-   built Y, say Y honestly. Renaming Y into X is fabrication.
-3. NO UMBRELLA CLAIMS FROM A PART. If CLAUDE.md gives me one piece of a named framework, name that
-   piece — not the umbrella. Check CLAUDE.md's "## Fabrication log" for specific umbrella claims that
-   are explicitly off-limits, and never assert the umbrella when the bank only supports a part.
-4. NO INVENTED SCOPE/NUMBERS. Team/service/market/scale figures come from the achievement bank in
-   CLAUDE.md verbatim. Never manufacture a new figure to fit the JD.
-5. A GAP IS REPORTED, NEVER WORN. A JD requirement I don't genuinely meet goes in Step 9 as a gap and
-   appears NOWHERE in the profile, competencies, bullets, or skills — not via reframing, relabelling, an
-   upgraded title, an umbrella-metric, or a borrowed buzzphrase. ATS/coverage score is never a reason to
-   wear a gap. I want to be MYSELF on the page.
+**PERSIST THEM — MANDATORY.** The box is Yash's memory for facts the bank lacks. A fact used once
+and forgotten is worse than useless: the résumé ships with it, `/tailor-verify` later flags it as
+unsourced, and the next run doesn't know it either. In the SAME run, before building:
+1. Write the raw block verbatim to `output/<slug>/known-facts-<YYYYMMDD>.md` with a one-line header
+   naming the date and the JD. This is the provenance record `/tailor-verify` reads.
+2. Append the facts to `## Achievement bank` in CLAUDE.md, phrased as facts rather than JD-shaped
+   claims, each tagged `(Supplied by Yash via --known-facts, <date>.)`
+3. Bank at EXACTLY the level asserted — per the Fabrication log's don't-inflate rule. "Set up the
+   ticketing system" never becomes "owned support operations with SLAs".
+4. Say so in STEP 8, one line: which facts were banked, so he knows they are permanent.
 
-STEP 1 — PARSE
-Remove any flags from JD text and note which are present.
-RESOLVE URL: if the JD argument is a URL (starts with http:// or https://) rather than pasted
-text, fetch the page and extract the full job description text (title, company, location,
-responsibilities, requirements, benefits) before doing anything else. Use that fetched text as
-THE JD for every step below. If the fetch fails (e.g. login wall), stop and say so plainly —
-do not proceed with just the URL string as the JD.
-Extract: role title, company name and slug (lowercase-hyphens, e.g. "trade-republic"),
-role lean, seniority, location, language requirement (flag any non-English fluency the JD demands),
-8–10 must-have keywords, 3–4 nice-to-have keywords. Note today's date (YYYYMMDD).
+## HARD RULES (breaking one is a failure, not a near-miss)
+1. **TITLE LOCK.** Job titles in PROFESSIONAL EXPERIENCE are fixed facts — use each exactly as
+   written in CLAUDE.md. The Delivery Hero title is never adjustable. (Older titles: see
+   `## Apply / skip filter` → "Older job titles are adjustable".)
+2. **NO RELABELLING.** Describe each achievement as what it actually is. If the JD wants X and the
+   bank says Y, say Y. Renaming Y into X is fabrication.
+3. **NO UMBRELLA FROM A PART.** Name the piece the bank supports, never the umbrella.
+4. **NO INVENTED SCOPE/NUMBERS.** Scope figures come from the bank verbatim.
+5. **A GAP IS REPORTED, NEVER WORN.** An unmet requirement goes in STEP 8 and appears nowhere in
+   the profile, competencies, bullets or skills — not via reframing, relabelling, an upgraded
+   title, an umbrella metric, or a borrowed buzzphrase. Coverage score is never a reason to wear one.
 
-STEP 2 — RESEARCH (only if --research flag)
-Web search "[company] engineering culture [year]" and "[company] tech blog".
-Note 2–3 concrete signals (values, stack emphasis, team model) to weave into tone.
-One short paragraph only — do not pad.
+FABRICATION GUARD: if you are about to use any fact not in the achievement bank or the KNOWN_FACTS
+block, write `[VERIFY: your intended claim]` instead. A placeholder beats a fabrication.
 
-STEP 3 — RESUME PERFORMANCE CONTEXT
-Read companies/<slug>.md and find every entry under "## Resumes sent".
-For each entry, extract: date, filename, ATS score, JD title, JD snapshot, outcome.
+---
 
-Then reason explicitly before proceeding:
+## STEP 1 — PARSE
+Strip flags and the KNOWN_FACTS block from the JD text; note which flags are present.
+RESOLVE URL: if the JD argument is a URL, fetch the page and extract the full job description
+text, and use that as THE JD throughout. If the fetch fails, stop and say so plainly — never
+proceed with a bare URL string as the JD.
+Extract: role title, company name and slug (lowercase-hyphens), role lean, seniority, location,
+any language requirement, 8–10 must-have keywords, 3–4 nice-to-haves. Note today's date (YYYYMMDD).
 
-a) PATTERN: What framing, keywords, and emphasis appeared across sent resumes?
-b) SIGNAL: Which outcomes were positive (interview invite)? Which were negative
-   (rejection, silence after 3+ weeks)? Which are still pending?
-c) IMPLICATION FOR THIS APPLICATION:
-   - If a framing worked before for a similar role → reinforce it.
-   - If a framing failed for a similar role → change the angle, not just the keywords.
-   - If the current JD is meaningfully different from prior ones (seniority, lean, domain)
-     → treat it fresh but note the transferable signals.
-   - If no history exists → proceed fresh, note this is the first application to this company.
+## STEP 2 — RESEARCH (only if `--research`)
+Web search "[company] engineering culture [year]" and "[company] tech blog". Note 2–3 concrete
+signals to weave into tone. One short paragraph — do not pad.
 
-Write 3–5 lines summarising your reasoning before moving to Step 4.
-This reasoning directly shapes the emphasis, tone, and bullet ordering in the resume.
+## STEP 3 — PERFORMANCE CONTEXT
+Read `companies/<slug>.md` → `## Resumes sent`. For each entry note date, filename, score, JD
+title, outcome. Then reason explicitly in 3–5 lines:
+- **Pattern:** what framing and emphasis appeared across sent résumés?
+- **Signal:** which outcomes were positive, negative, still pending?
+- **Implication:** a framing that worked for a similar role → reinforce it. One that failed →
+  change the angle, not just the keywords. A meaningfully different JD → treat fresh. No history
+  → say so and proceed fresh.
 
-STEP 4 — DRAFT FULL RESUME
-Write the complete tailored resume. Single-column, ATS-safe structure.
+## STEP 4 — RELEVANCE & EMPHASIS PLAN (before drafting — this is the screening lever)
+The résumé is read by an ATS and skimmed by a human in ~6 seconds.
+- Identify the JD's TOP 3 must-haves — what the role is actually about, not every keyword.
+- Map each to the strongest genuine match in the bank. Name the specific evidence.
+- A top-3 must-have with no genuine match is a gap (report it; never invent emphasis for it).
+- Plan the TOP THIRD to carry the relevance: the headline descriptors, the profile's first
+  sentence, and the first 4–5 core competencies. Someone reading only that should think "fits".
+Write these 3–5 lines, then draft.
 
-WORDING RULE (governs the whole draft — read first):
-Write as MYSELF. Map my real experience onto what the JD asks for in my own standard terminology.
-Do NOT mirror the JD's phrasing, nouns, sentence shapes, or branded buzzphrases — echoing the JD
-reads as keyword-stuffing and is a failure, not a success.
-THE ONLY MIRRORING ALLOWED: a term that is the genuine, standard INDUSTRY name for something I
-actually did — e.g. "CI/CD", "TDD", "test pyramid", "contract testing", "code review", "microservices".
-These are shared vocabulary, not the JD's voice, so use them freely where they fit my real work.
-A phrase that is the JD's distinctive framing, a vendor/company coinage, or a buzzphrase — e.g.
-"Platform-as-a-Product", "developer-productivity tooling", "influence rather than mandate",
-"outcomes over tasks", "Internal Developer Platform" — is NOT industry-standard; never adopt it to
-match the JD. If unsure whether a term is standard or JD-branded, treat it as JD-branded and use my
-own words. Address a JD requirement only when I have genuine matching experience in the base resume,
-the bank, or companies/<slug>.md. A requirement I can't honestly match is a gap to report (Step 9),
-never a phrase to paste in.
+## STEP 5 — DRAFT
+Write the complete résumé following `resumes/resume-skeleton.md` — section order, bullet density
+and length budget all come from that file. Lead with the STEP 4 emphasis.
 
-NAME LINE: the candidate's name (with degrees if listed) exactly as given in CLAUDE.md's "## Snapshot".
-CONTACT: the full contact line from CLAUDE.md's "## Snapshot" (location, work-authorisation if stated,
-phone, email, LinkedIn) — verbatim, never invented.
-TITLE LINE: role-tuned to this JD, built from the candidate's real positioning in CLAUDE.md (e.g. a
-QA-leaning JD → "QA Manager | Quality Engineering Leader | Test Automation"). Tune the words to the JD;
-never claim a seniority or specialism CLAUDE.md doesn't support.
+**WORDING RULE.** Write as Yash, and match keywords without copycatting.
+- **Mirror the JD's term when the term is TRUE.** If the JD names something he has actually done,
+  use the JD's own standard term — that is how ATS matching and recruiter skimming work. See the
+  mirroring entry in `## Tailoring lessons`; do not "compress to the standard term" when the JD's
+  term *is* the standard term.
+- **Do not mirror a phrase you can't back.** Two cases only: (a) a distinctive multi-word coinage
+  used as decoration, and (b) any term naming work Yash hasn't done. Everything else, mirror freely.
+- Address a requirement only where genuine matching experience exists in the base résumé, the bank,
+  the known-facts files, or `companies/<slug>.md`. Unmatched requirements are gaps, never phrases
+  to paste in.
 
-PROFILE (3–4 lines): Address the JD's top 3 must-haves — but describe the matching real experience
-in my own words; do NOT echo the JD's phrasing. Lead with scope + strongest differentiator.
+**PLAIN-LANGUAGE RULE.** Follow `### Plain-language rule — RÉSUMÉS` in CLAUDE.md. It changes
+sentence SHAPE, not vocabulary — never drop a real term to sound plainer, and never keep a fancy
+sentence to hold a term.
 
-CORE COMPETENCIES: Reorder to lead with what this JD values most, named in my own standard terms
-from the base resume — do NOT copy the JD's exact phrases.
+**BANK COVERAGE.** Before finalising, scan the WHOLE achievement bank and include every item
+genuinely relevant to this JD. Do not silently drop a relevant achievement to save space — if the
+length budget forces a cut, name exactly what was cut and why in STEP 8.
 
-PROFESSIONAL EXPERIENCE:
-Use the candidate's real roles from CLAUDE.md and the base resume, in reverse-chronological order.
-Each role's title, company, dates, and location come from CLAUDE.md verbatim (TITLE LOCK applies).
-Give the current/most recent role the most space (typically 6–8 bullets); older roles get 3–4 bullets,
-as-is unless a direct JD match exists. All bullets come from the achievement bank only — no invention.
-Reorder bullets to lead with most relevant, described in my own wording. Do NOT lift phrases or sentence
-shapes from the JD.
-BANK COVERAGE RULE: before finalising, scan the WHOLE achievement bank and include every item
-genuinely relevant to this JD. Do NOT silently drop a relevant achievement to save space — if the
-2-page cap forces a cut, say so in Step 8 and name exactly what was cut and why. Check the candidate's
-signature, high-value achievements explicitly every time so none is missed. Every bullet must trace to
-the base resume, the achievement bank, or companies/<slug>.md; if it cannot, it is invention — drop it.
-Under each role header, include a one-line ITALIC company descriptor (a short, factual line about what
-that employer does), e.g. *Global online food & grocery delivery platform — operating in 40+ markets.*
+Do NOT print the résumé in your response prose. It is saved to file and read by the UI.
 
-NOTE: the DOCX and HTML downloads now render from the saved markdown (Step 7) VERBATIM — nothing in
-the markdown is dropped, and nothing outside it appears. So write the saved markdown as the final,
-fully formatted resume: `# Name` first, then the title line, then the contact line, then `## Section`
-headings, `### Role · Company · dates | location` per role, the italic descriptor, then `- ` bullets.
-Older roles (everything before the most recent): 3–4 bullets each, as-is unless a direct JD match
-exists. Where the bank ties a notable award/recognition to a role, include it.
+## STEP 6 — MEASURE, THEN SAVE
+1. Save the résumé to `output/resume-<slug>-<YYYYMMDD>.md`.
+2. Run `node plain.js output/resume-<slug>-<YYYYMMDD>.md`. Rewrite every flagged line until the
+   score is ≥ 80 (verdict PLAIN). Rewrite — never delete a fact or a standard term to raise the
+   score. Report the before/after score.
+3. Quantification check (flag current-role bullets with no metric; add one from the bank if
+   available), action-verb check (rewrite "responsible for / worked on / helped / assisted /
+   involved in / supported"), and the length budget from the skeleton. Report each.
+4. HONESTY SELF-AUDIT — report PASS/FAIL on each: (a) every experience title matches CLAUDE.md;
+   (b) every claim traces to a bank / base-CV / known-facts line; (c) nothing relabelled;
+   (d) no unbackable JD phrase borrowed; (e) nothing from the gap list worn as if met.
+   Fix before saving. This is a self-check, not a gate — the real gates run independently.
+5. Save the FULL resolved JD text (fetched text if the input was a URL; pasted text otherwise —
+   never a bare URL string) to `output/<slug>/jd-<YYYYMMDD>.md` with the header
+   `# JD — <jd_title> — <slug>` / `_Captured <YYYY-MM-DD>_` / blank line / JD text.
 
-EDUCATION:
-Each degree, institution, location, and period from CLAUDE.md / the base resume, verbatim.
+**DO NOT SELF-GRADE COVERAGE.** `/tailor-screen` (will it get found) and `/tailor-verify` (is it
+defensible) are run by the SERVER as separate `claude -p` passes after this draft is saved, so a
+verifier never grades the pass that wrote the draft. Do not run them here and do not invent a
+coverage percentage. Your job is to make their work easy: every must-have Yash genuinely has is
+present in a standard term, ideally in the top third, and nothing violates the Fabrication log.
 
-TECHNICAL SKILLS: Reorder each section to lead with the JD's priority stack. Use the skill categories
-that fit the candidate's field as reflected in CLAUDE.md / the base resume (for a quality/engineering
-profile these are typically: Test Automation · Languages & Platforms · CI/CD & DevOps · Test Analytics
-& Reporting · Observability & Cloud · Device & Compatibility · Practices). Keep every category the base
-resume uses; only the tools listed in CLAUDE.md / the base resume may appear — never add a tool to match
-the JD.
+## STEP 7 — OUTPUT CONTRACT (the server parses these exactly — do not alter the shapes)
 
-LANGUAGES & RECOGNITION:
-Languages with the honest proficiency levels from CLAUDE.md; any awards/recognition and work
-authorisation the bank lists — verbatim, never inflated.
-
-Important: do NOT print the full resume in your response prose. It is saved via RESUME_JSON
-and read from file by the UI. Your printed response output should contain only the analysis
-(Steps 5 onwards). This keeps the response focused and parseable.
-
-STEP 5 — COVERAGE CHECK (concepts, not verbatim keywords)
-List the 8–10 must-have requirements from Step 1 as concepts — not the JD's exact phrases.
-For each, check whether the resume already demonstrates that capability through my real experience,
-in my own words. Mark each: covered / partial / genuine gap.
-Do NOT insert the JD's exact phrasing to raise the score — a concept covered in my own words counts
-as covered even when the wording differs from the JD's.
-If a capability I genuinely have (base resume / company files) isn't surfaced yet, surface it — in
-my words. Never add a capability I don't have to hit a number.
-Set ats_score (used by the UI) to the share of requirements genuinely demonstrated, as a percentage.
-Report: "Coverage: X/10 requirements demonstrated — ~Y%". Anything not honestly coverable is a gap
-for Step 9, not phrasing to paste in.
-
-STEP 6 — QUALITY CHECKS
-Quantification: flag any bullet in the current/most recent role with no metric. Add one from the
-achievement bank if available. Report: "X/Y current-role bullets have metrics."
-Action verbs: rewrite any bullet starting with: responsible for, worked on, helped,
-assisted, involved in, supported. Replace with strong past-tense verbs.
-2-page cap: estimate page count at 11pt Arial. If over 2 pages, trim lowest-priority bullets from the
-current role first, then from older roles if still over. Note cuts made.
-
-STEP 6B — HONESTY SELF-AUDIT (do this before saving; report PASS/FAIL on each line)
-Audit the drafted resume against the HARD RULES and WORDING RULE. Report each:
-(a) TITLES — every experience title matches CLAUDE.md exactly (quote them).
-(b) TRACE — every profile claim, competency, bullet, and skill traces to a specific bank / base-CV /
-    KNOWN_FACTS line. List anything that doesn't, and DELETE it.
-(c) RELABEL — no achievement is renamed into a category it isn't (platform / framework / metric type).
-(d) MIRROR — no phrase is lifted from the JD unless it's a standard industry term; list any borrowed
-    buzzphrases and reword them.
-(e) GAP WORN — nothing from Step 9's gap list also appears as if met in the body.
-If any check FAILS, fix the draft before Step 7. Never save a resume that fails the audit.
-
-STEP 7 — SAVE AND OUTPUT STRUCTURED DATA
-Save the complete final resume as output/resume-<slug>-<YYYYMMDD>.md
-Also save the FULL resolved JD text (the fetched text if the input was a URL; the pasted text
-otherwise — never just a URL string) as output/<slug>/jd-<YYYYMMDD>.md, with this header:
-`# JD — <jd_title> — <slug>` then `_Captured <YYYY-MM-DD>_` then a blank line then the JD text.
-This guarantees the JD is persisted on every run (CLI or UI, text or URL). Then emit the marker
-`<!-- SAVED_JD: output/<slug>/jd-<YYYYMMDD>.md -->` so the server knows not to overwrite it.
-
-Then output this JSON block exactly between the markers (server uses it to build .docx):
+```
+<!-- SAVED: output/resume-<slug>-<YYYYMMDD>.md -->
+<!-- SAVED_JD: output/<slug>/jd-<YYYYMMDD>.md -->
+<!-- DIFF_SUMMARY: added=N modified=M removed=P -->
+```
+`added`/`modified`/`removed` are actual bullet counts vs the base résumé.
 
 <!-- RESUME_JSON
 {
   "slug": "<slug>",
   "date": "<YYYYMMDD>",
   "jd_title": "<role title from JD>",
-  "ats_score": <integer 0-100>,
   "jd_text": "<first 800 characters of the JD text, cleaned of newlines>",
   "filename": "resume-<slug>-<YYYYMMDD>",
   "sections": {
-    "name": "<candidate name, with degrees if listed, from CLAUDE.md>",
-    "contact": "<full contact line from CLAUDE.md — location, work-auth, phone, email, LinkedIn>",
-    "title": "<tailored title line>",
-    "profile": "<profile paragraph as single string>",
-    "competencies": ["<item>", "<item>"],
+    "name": "<candidate name, with degrees, from CLAUDE.md>",
+    "contact": "<full contact line from CLAUDE.md>",
+    "title": "<locked lane headline, descriptors tuned>",
+    "profile": "<profile paragraph as a single string>",
+    "competencies": ["<label>", "<label>"],
     "experience": [
-      {
-        "role": "<title>",
-        "company": "<company name>",
-        "period": "<dates>",
-        "location": "<location>",
-        "bullets": ["<bullet text>", "<bullet text>"]
-      }
+      { "role": "<title>", "company": "<company>", "period": "<dates>",
+        "location": "<location>", "bullets": ["<bullet>", "<bullet>"] }
     ],
-    "education": [
-      { "degree": "<degree>", "institution": "<institution>", "period": "<period>" }
-    ],
-    "technical_skills": {
-      "Test Automation": "<comma-separated tools>",
-      "Languages & Platforms": "<comma-separated>",
-      "CI/CD & DevOps": "<comma-separated>",
-      "Test Analytics & Reporting": "<comma-separated>",
-      "Observability & Cloud": "<comma-separated>",
-      "Device & Compatibility": "<comma-separated>",
-      "Practices": "<comma-separated>"
-    },
+    "education": [ { "degree": "<degree>", "institution": "<institution>", "period": "<period>" } ],
+    "technical_skills": { "<Category>": "<comma-separated tools>" },
     "languages_recognition": "<full text of this section>"
   }
 }
 -->
 
-<!-- SAVED: output/resume-<slug>-<YYYYMMDD>.md -->
+Note: there is no `ats_score` field. The server computes the keyword score deterministically
+(`ats.js`) and the screen gate reports the screening score — both replace the old self-grade.
 
-STEP 8 — DIFF SUMMARY
-Output this single line exactly (server parses it):
-<!-- DIFF_SUMMARY: added=N modified=M removed=P -->
-where N, M, P are the actual counts of bullets added, modified, and removed vs the base resume.
-Then output this JSON block for detailed highlighting (best effort):
+Use the technical-skills categories the lane's base résumé uses. For `--tpm` these are the
+programme-oriented ones in `resume-tpm.md` (Programme & Delivery, Data & Metrics, Tooling,
+Technical Breadth) — do not emit Test Automation / Device & Compatibility for that lane.
+
+Then, best effort:
 <!-- DIFF_DATA
 {
-  "modified_bullets": ["<first 35 chars of each modified bullet>"],
-  "added_bullets": ["<first 35 chars of each added bullet>"],
-  "removed_bullets": ["<first 35 chars of each removed bullet>"]
+  "modified_bullets": ["<first 35 chars of each>"],
+  "added_bullets": ["<first 35 chars of each>"],
+  "removed_bullets": ["<first 35 chars of each>"]
 }
 -->
 
-STEP 9 — GAPS
-List JD requirements not clearly met. Honest, not encouraging.
-Flag explicitly if the JD requires or strongly prefers a language proficiency the candidate doesn't yet
-have per CLAUDE.md (state the candidate's real level; never overstate it on paper).
+## STEP 8 — GAPS AND NOTES
+List JD requirements not clearly met — honest, not encouraging. Flag explicitly if the JD requires
+a language proficiency Yash lacks, stating his real level per CLAUDE.md.
+Add, where they apply: the one-line lane suggestion (LANE above), the banked known-facts line
+(KNOWN FACTS step 4), and anything the length budget forced you to cut.
 
-STEP 10 — COVER LETTER (only if --cover-letter flag)
-~180 words in my voice. One specific true reason for this company.
-Follow any status/framing rules in CLAUDE.md (e.g. how to present employment status or notice period;
-some candidates prefer not to raise notice unless asked).
-Save as output/cover-letter-<slug>-<YYYYMMDD>.md
-Output: <!-- SAVED_CL: output/cover-letter-<slug>-<YYYYMMDD>.md -->
+## STEP 9 — COVER LETTER (only if `--cover-letter`)
+~180 words in Yash's voice, per `## Voice rules` and the don't-sound-AI-written rule. One specific
+true reason for this company. Follow `## Status / framing` on employment status and notice period.
+Save to `output/cover-letter-<slug>-<YYYYMMDD>.md` and emit:
+`<!-- SAVED_CL: output/cover-letter-<slug>-<YYYYMMDD>.md -->`
 
-STEP 11 — SURFACE NEW FACTS (only if a KNOWN_FACTS block was supplied)
-For each user-supplied fact that you actually used in the resume and that is NOT already in the
-CLAUDE.md achievement bank, note it. After the deliverables, list them under a heading
-"New facts detected (not yet banked):" as a plain bulleted list — one line each.
-Do NOT ask a yes/no question and do NOT append to the bank here: the Tailor tab is not a chat, so a
-closing question has nowhere to be answered (see the no-closing-questions rule below). Instead, end the
-list with one flat statement: "To reuse these in future tailors, say 'bank these facts' in chat and
-they'll be appended to the achievement bank." Banking is a separate, explicit action — never automatic.
-
-After completing all steps, end with the deliverables and a one-line summary of what was produced.
-Do not end by asking what to do next. If companies/<slug>.md exists, note in one line that /prep is
-ready in the Prep tab — as a statement, not a question.
+---
+This runs in a non-chat UI — output is displayed, not replied to. End on the deliverables and the
+honest gaps, as statements. If `companies/<slug>.md` exists, note in one line that `/prep` is ready
+in the Prep tab. Never end on a question.

@@ -76,6 +76,12 @@ at leadership altitude, never a claim of daily coding. One decision, three tabs;
   past "be more concise / chunk the narrative" lesson means the opener and stories here must be tightened
   and you must add an explicit delivery reminder. These are recurring weak spots — do not let this pack
   repeat the mistake that generated the lesson.
+- `story-bank.md` (repo root) — **the concrete material those lessons call for.** The Interview
+  lessons say WHAT goes wrong; the story bank holds WHAT TO SAY INSTEAD: the org-structure answer
+  (5 direct reports incl. 2 EMs, ~22 engineers, the owned-vs-influence split), the people-led
+  specifics, and the cross-team initiative stories rehearsed as PRIMARY material. Draw §3's stories
+  from here first, then fill gaps from the achievement bank. Do not re-derive a story from scratch
+  when the bank already has it rehearsed.
 - companies/<name>.md — stage, contacts, prior rounds, JD snapshot, anything learned.
 - The full job description if saved at output/<name>/jd-*.md — this is the primary source for the
   §5 JD-vs-CV gap diff. Prefer it over the truncated snapshot in the company file.

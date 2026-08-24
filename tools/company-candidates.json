@@ -1,0 +1,1601 @@
+{
+  "_readme": "Candidate companies for Discover source expansion. Hand-curated, no scraping. Run tools/discover-sources.js to probe each name against every supported ATS and emit validated source entries. 'aliases' carries known slug spellings when the company name doesn't derive cleanly (e.g. Sonar -> sonarsource).",
+
+  "_blocklist": {
+    "_why": "type:slug pairs that ARE live boards but belong to a DIFFERENT company of the same name. Verified by hand; the probe cannot tell them apart.",
+    "greenhouse:wise": "a Cleveland, Ohio sales company — not Wise the fintech (real board: smartrecruiters:wise)",
+    "workable:scalable": "'The Scalable Company' (Austin/Nashville consultancy) — not Scalable Capital",
+    "greenhouse:remote": "two 'SEI Instructor Lead' posts in New York, NY — not Remote.com the EOR (real board: greenhouse:remotecom)"
+  },
+
+  "berlin-dach": [
+    {
+      "name": "Celonis"
+    },
+    {
+      "name": "Personio"
+    },
+    {
+      "name": "N26"
+    },
+    {
+      "name": "Trade Republic",
+      "aliases": [
+        "traderepublic",
+        "trade-republic"
+      ]
+    },
+    {
+      "name": "SumUp"
+    },
+    {
+      "name": "HelloFresh"
+    },
+    {
+      "name": "Contentful"
+    },
+    {
+      "name": "GetYourGuide"
+    },
+    {
+      "name": "Doctolib"
+    },
+    {
+      "name": "Tourlane"
+    },
+    {
+      "name": "Adjust"
+    },
+    {
+      "name": "Zalando",
+      "aliases": [
+        "zalandose",
+        "zalando-se"
+      ]
+    },
+    {
+      "name": "Delivery Hero",
+      "aliases": [
+        "deliveryhero",
+        "delivery-hero"
+      ]
+    },
+    {
+      "name": "Flix",
+      "aliases": [
+        "flixbus",
+        "flixmobility",
+        "flixse"
+      ]
+    },
+    {
+      "name": "Wayfair"
+    },
+    {
+      "name": "Babbel",
+      "aliases": [
+        "lessonnine",
+        "babbelgmbh"
+      ]
+    },
+    {
+      "name": "Signavio"
+    },
+    {
+      "name": "Solarisbank",
+      "aliases": [
+        "solaris",
+        "solarisse"
+      ]
+    },
+    {
+      "name": "Raisin",
+      "aliases": [
+        "raisingmbh",
+        "weltsparen"
+      ]
+    },
+    {
+      "name": "Scalable Capital",
+      "aliases": [
+        "scalablecapital",
+        "scalable"
+      ]
+    },
+    {
+      "name": "Taxfix"
+    },
+    {
+      "name": "Forto"
+    },
+    {
+      "name": "Sennder"
+    },
+    {
+      "name": "Choco",
+      "aliases": [
+        "chocoapp",
+        "choco-com"
+      ]
+    },
+    {
+      "name": "Gorillas"
+    },
+    {
+      "name": "Flink",
+      "aliases": [
+        "goflink",
+        "flinkde"
+      ]
+    },
+    {
+      "name": "Grover"
+    },
+    {
+      "name": "Wefox"
+    },
+    {
+      "name": "Clark",
+      "aliases": [
+        "clarkgermany",
+        "clark-de"
+      ]
+    },
+    {
+      "name": "Moss",
+      "aliases": [
+        "getmoss",
+        "mossde"
+      ]
+    },
+    {
+      "name": "Pleo"
+    },
+    {
+      "name": "Mambu"
+    },
+    {
+      "name": "Payrails"
+    },
+    {
+      "name": "Pliant"
+    },
+    {
+      "name": "Billie"
+    },
+    {
+      "name": "Mondu"
+    },
+    {
+      "name": "Sastrify"
+    },
+    {
+      "name": "Circula"
+    },
+    {
+      "name": "Finn",
+      "aliases": [
+        "finnauto",
+        "finn-auto"
+      ]
+    },
+    {
+      "name": "Enpal"
+    },
+    {
+      "name": "1Komma5",
+      "aliases": [
+        "1komma5grad",
+        "1komma5-grad"
+      ]
+    },
+    {
+      "name": "Ostrom"
+    },
+    {
+      "name": "Zolar"
+    },
+    {
+      "name": "Instagrid"
+    },
+    {
+      "name": "Ecosia"
+    },
+    {
+      "name": "Klarna"
+    },
+    {
+      "name": "Bolt",
+      "aliases": [
+        "boltcom",
+        "bolteu"
+      ]
+    },
+    {
+      "name": "Free Now",
+      "aliases": [
+        "freenow",
+        "free-now"
+      ]
+    },
+    {
+      "name": "Tier Mobility",
+      "aliases": [
+        "tiermobility",
+        "tier"
+      ]
+    },
+    {
+      "name": "Dott",
+      "aliases": [
+        "ridedott",
+        "dottmobility"
+      ]
+    },
+    {
+      "name": "Blinkist"
+    },
+    {
+      "name": "Ada Health",
+      "aliases": [
+        "adahealth",
+        "ada"
+      ]
+    },
+    {
+      "name": "Amboss",
+      "aliases": [
+        "ambossmed",
+        "ambossgmbh"
+      ]
+    },
+    {
+      "name": "Medwing"
+    },
+    {
+      "name": "Nelly",
+      "aliases": [
+        "nellysolutions",
+        "getnelly"
+      ]
+    },
+    {
+      "name": "Avi Medical",
+      "aliases": [
+        "avimedical"
+      ]
+    },
+    {
+      "name": "Klara",
+      "aliases": [
+        "klarahealth"
+      ]
+    },
+    {
+      "name": "Kry",
+      "aliases": [
+        "kryinternational",
+        "livi"
+      ]
+    },
+    {
+      "name": "Urban Sports Club",
+      "aliases": [
+        "urbansportsclub",
+        "urbansports"
+      ]
+    },
+    {
+      "name": "Jobvalley"
+    },
+    {
+      "name": "Xing",
+      "aliases": [
+        "newwork",
+        "newworkse"
+      ]
+    },
+    {
+      "name": "Idealo"
+    },
+    {
+      "name": "Check24",
+      "aliases": [
+        "check24group"
+      ]
+    },
+    {
+      "name": "Otto",
+      "aliases": [
+        "ottogroup",
+        "ottode"
+      ]
+    },
+    {
+      "name": "About You",
+      "aliases": [
+        "aboutyou",
+        "about-you"
+      ]
+    },
+    {
+      "name": "Home24"
+    },
+    {
+      "name": "Westwing"
+    },
+    {
+      "name": "MyToys",
+      "aliases": [
+        "mytoysgroup"
+      ]
+    },
+    {
+      "name": "Momox"
+    },
+    {
+      "name": "Kaufland",
+      "aliases": [
+        "kauflande",
+        "kauflandde"
+      ]
+    },
+    {
+      "name": "Lieferando",
+      "aliases": [
+        "justeattakeaway",
+        "takeaway"
+      ]
+    },
+    {
+      "name": "Trivago"
+    },
+    {
+      "name": "Omio"
+    },
+    {
+      "name": "Distribusion"
+    },
+    {
+      "name": "Sixt"
+    },
+    {
+      "name": "Emma",
+      "aliases": [
+        "emmasleep",
+        "emma-sleep"
+      ]
+    },
+    {
+      "name": "Staffbase"
+    },
+    {
+      "name": "Userlane"
+    },
+    {
+      "name": "Celus"
+    },
+    {
+      "name": "Konux"
+    },
+    {
+      "name": "Isar Aerospace",
+      "aliases": [
+        "isaraerospace"
+      ]
+    },
+    {
+      "name": "Agile Robots",
+      "aliases": [
+        "agilerobots"
+      ]
+    },
+    {
+      "name": "Proglove"
+    },
+    {
+      "name": "Luminovo"
+    },
+    {
+      "name": "Parloa"
+    },
+    {
+      "name": "DeepL"
+    },
+    {
+      "name": "Aleph Alpha",
+      "aliases": [
+        "alephalpha"
+      ]
+    },
+    {
+      "name": "Merantix"
+    },
+    {
+      "name": "Helsing"
+    },
+    {
+      "name": "Quantum Systems",
+      "aliases": [
+        "quantumsystems"
+      ]
+    },
+    {
+      "name": "Marvel Fusion",
+      "aliases": [
+        "marvelfusion"
+      ]
+    },
+    {
+      "name": "Volocopter"
+    },
+    {
+      "name": "Lilium"
+    },
+    {
+      "name": "Bird",
+      "aliases": [
+        "birdglobal"
+      ]
+    },
+    {
+      "name": "SoundCloud"
+    },
+    {
+      "name": "Native Instruments",
+      "aliases": [
+        "nativeinstruments"
+      ]
+    },
+    {
+      "name": "Ableton"
+    },
+    {
+      "name": "Jodel",
+      "aliases": [
+        "jodelapp",
+        "thejodelapp"
+      ]
+    },
+    {
+      "name": "Kununu"
+    },
+    {
+      "name": "Smava"
+    },
+    {
+      "name": "Auto1",
+      "aliases": [
+        "auto1group",
+        "auto1-group"
+      ]
+    },
+    {
+      "name": "Kleinanzeigen"
+    },
+    {
+      "name": "Scout24",
+      "aliases": [
+        "immobilienscout24",
+        "scout24ag"
+      ]
+    },
+    {
+      "name": "Verivox"
+    },
+    {
+      "name": "Chrono24"
+    },
+    {
+      "name": "Coachhub"
+    },
+    {
+      "name": "Sana Labs",
+      "aliases": [
+        "sanalabs"
+      ]
+    },
+    {
+      "name": "Bryter"
+    },
+    {
+      "name": "Localyze"
+    },
+    {
+      "name": "Remote Bird",
+      "aliases": [
+        "remotebird"
+      ]
+    },
+    {
+      "name": "Kontist"
+    },
+    {
+      "name": "Finanzcheck"
+    },
+    {
+      "name": "Wunder Mobility",
+      "aliases": [
+        "wundermobility"
+      ]
+    },
+    {
+      "name": "Sportradar"
+    },
+    {
+      "name": "GoStudent"
+    },
+    {
+      "name": "Bitpanda"
+    },
+    {
+      "name": "Adverity"
+    },
+    {
+      "name": "Dynatrace"
+    },
+    {
+      "name": "Prewave"
+    },
+    {
+      "name": "Storyblok"
+    },
+    {
+      "name": "Frontify"
+    },
+    {
+      "name": "Smallpdf"
+    },
+    {
+      "name": "Ledgy"
+    },
+    {
+      "name": "Nexthink"
+    },
+    {
+      "name": "Scandit"
+    },
+    {
+      "name": "Sherpany"
+    },
+    {
+      "name": "Beekeeper"
+    },
+    {
+      "name": "On Running",
+      "aliases": [
+        "onrunning",
+        "on-running",
+        "oncloud"
+      ]
+    },
+    {
+      "name": "Digitec Galaxus",
+      "aliases": [
+        "digitecgalaxus",
+        "galaxus"
+      ]
+    },
+    {
+      "name": "Ricardo",
+      "aliases": [
+        "ricardoch"
+      ]
+    },
+    {
+      "name": "Numbrs"
+    },
+    {
+      "name": "Yokoy"
+    },
+    {
+      "name": "Planted",
+      "aliases": [
+        "eatplanted"
+      ]
+    }
+  ],
+  "eu-remote": [
+    {
+      "name": "GitLab"
+    },
+    {
+      "name": "Elastic"
+    },
+    {
+      "name": "Grafana Labs",
+      "aliases": [
+        "grafanalabs",
+        "grafana"
+      ]
+    },
+    {
+      "name": "Datadog"
+    },
+    {
+      "name": "Cloudflare"
+    },
+    {
+      "name": "PostHog"
+    },
+    {
+      "name": "Supabase"
+    },
+    {
+      "name": "Linear"
+    },
+    {
+      "name": "Notion"
+    },
+    {
+      "name": "Vercel"
+    },
+    {
+      "name": "Deel"
+    },
+    {
+      "name": "Ramp"
+    },
+    {
+      "name": "Remote",
+      "aliases": [
+        "remotecom",
+        "remote-com"
+      ]
+    },
+    {
+      "name": "Oyster",
+      "aliases": [
+        "oysterhr",
+        "oyster-hr"
+      ]
+    },
+    {
+      "name": "Automattic"
+    },
+    {
+      "name": "Zapier"
+    },
+    {
+      "name": "Buffer"
+    },
+    {
+      "name": "Doist"
+    },
+    {
+      "name": "Toggl"
+    },
+    {
+      "name": "Hotjar"
+    },
+    {
+      "name": "Canonical"
+    },
+    {
+      "name": "Mozilla"
+    },
+    {
+      "name": "DuckDuckGo"
+    },
+    {
+      "name": "Chainguard"
+    },
+    {
+      "name": "HashiCorp"
+    },
+    {
+      "name": "Docker"
+    },
+    {
+      "name": "CircleCI"
+    },
+    {
+      "name": "JFrog"
+    },
+    {
+      "name": "Snyk"
+    },
+    {
+      "name": "Sysdig"
+    },
+    {
+      "name": "Aiven"
+    },
+    {
+      "name": "Neo4j"
+    },
+    {
+      "name": "MongoDB"
+    },
+    {
+      "name": "Redis",
+      "aliases": [
+        "redislabs",
+        "rediscom"
+      ]
+    },
+    {
+      "name": "Confluent"
+    },
+    {
+      "name": "Cockroach Labs",
+      "aliases": [
+        "cockroachlabs",
+        "cockroachdb"
+      ]
+    },
+    {
+      "name": "Clickhouse"
+    },
+    {
+      "name": "Timescale"
+    },
+    {
+      "name": "Yugabyte"
+    },
+    {
+      "name": "Percona"
+    },
+    {
+      "name": "Sentry",
+      "aliases": [
+        "getsentry",
+        "sentryio"
+      ]
+    },
+    {
+      "name": "Honeycomb",
+      "aliases": [
+        "honeycombio",
+        "honeycomb-io"
+      ]
+    },
+    {
+      "name": "New Relic",
+      "aliases": [
+        "newrelic"
+      ]
+    },
+    {
+      "name": "Chronosphere"
+    },
+    {
+      "name": "Netdata"
+    },
+    {
+      "name": "Instana"
+    },
+    {
+      "name": "Twilio"
+    },
+    {
+      "name": "Stripe"
+    },
+    {
+      "name": "Adyen"
+    },
+    {
+      "name": "Mollie"
+    },
+    {
+      "name": "Checkout",
+      "aliases": [
+        "checkoutcom",
+        "checkout-com"
+      ]
+    },
+    {
+      "name": "Wise",
+      "aliases": [
+        "transferwise",
+        "wisecom"
+      ]
+    },
+    {
+      "name": "Revolut"
+    },
+    {
+      "name": "Monzo"
+    },
+    {
+      "name": "Starling Bank",
+      "aliases": [
+        "starlingbank",
+        "starling"
+      ]
+    },
+    {
+      "name": "Miro"
+    },
+    {
+      "name": "Figma"
+    },
+    {
+      "name": "Airtable"
+    },
+    {
+      "name": "Typeform"
+    },
+    {
+      "name": "Contentsquare"
+    },
+    {
+      "name": "Algolia"
+    },
+    {
+      "name": "Strapi"
+    },
+    {
+      "name": "Sanity",
+      "aliases": [
+        "sanityio",
+        "sanity-io"
+      ]
+    },
+    {
+      "name": "Prismic"
+    },
+    {
+      "name": "Netlify"
+    },
+    {
+      "name": "Render",
+      "aliases": [
+        "rendercom",
+        "render-com"
+      ]
+    },
+    {
+      "name": "Fly",
+      "aliases": [
+        "flyio",
+        "fly-io"
+      ]
+    },
+    {
+      "name": "Railway",
+      "aliases": [
+        "railwayapp"
+      ]
+    },
+    {
+      "name": "Pulumi"
+    },
+    {
+      "name": "Spacelift"
+    },
+    {
+      "name": "Ory",
+      "aliases": [
+        "orycorp",
+        "orysh"
+      ]
+    },
+    {
+      "name": "Auth0"
+    },
+    {
+      "name": "Okta"
+    },
+    {
+      "name": "1Password",
+      "aliases": [
+        "agilebits",
+        "onepassword"
+      ]
+    },
+    {
+      "name": "Bitwarden"
+    },
+    {
+      "name": "Tailscale"
+    },
+    {
+      "name": "Teleport",
+      "aliases": [
+        "gravitational",
+        "goteleport"
+      ]
+    },
+    {
+      "name": "Hopper"
+    },
+    {
+      "name": "Loom"
+    },
+    {
+      "name": "Grammarly"
+    },
+    {
+      "name": "Duolingo"
+    },
+    {
+      "name": "Spotify"
+    },
+    {
+      "name": "Tink"
+    },
+    {
+      "name": "Truecaller"
+    },
+    {
+      "name": "Kahoot"
+    },
+    {
+      "name": "Cognite"
+    },
+    {
+      "name": "Unity",
+      "aliases": [
+        "unitytechnologies",
+        "unity3d"
+      ]
+    },
+    {
+      "name": "Vivino"
+    },
+    {
+      "name": "Zendesk"
+    },
+    {
+      "name": "Templafy"
+    },
+    {
+      "name": "Siteimprove"
+    },
+    {
+      "name": "Lunar",
+      "aliases": [
+        "lunarapp",
+        "lunarbank"
+      ]
+    },
+    {
+      "name": "Podium",
+      "aliases": [
+        "podiumcom"
+      ]
+    },
+    {
+      "name": "Veriff"
+    },
+    {
+      "name": "Wolt"
+    },
+    {
+      "name": "Smartly",
+      "aliases": [
+        "smartlyio",
+        "smartly-io"
+      ]
+    },
+    {
+      "name": "Relex",
+      "aliases": [
+        "relexsolutions"
+      ]
+    },
+    {
+      "name": "Supermetrics"
+    },
+    {
+      "name": "Pipedrive"
+    },
+    {
+      "name": "Glia"
+    },
+    {
+      "name": "Vinted"
+    },
+    {
+      "name": "Nord Security",
+      "aliases": [
+        "nordsecurity",
+        "nordvpn"
+      ]
+    },
+    {
+      "name": "Kilo Health",
+      "aliases": [
+        "kilohealth"
+      ]
+    },
+    {
+      "name": "Docplanner"
+    },
+    {
+      "name": "Brainly"
+    },
+    {
+      "name": "Booksy"
+    },
+    {
+      "name": "Ramp Network",
+      "aliases": [
+        "rampnetwork"
+      ]
+    },
+    {
+      "name": "Sumsub"
+    },
+    {
+      "name": "Preply"
+    },
+    {
+      "name": "Grid Dynamics",
+      "aliases": [
+        "griddynamics"
+      ]
+    },
+    {
+      "name": "SoftServe"
+    },
+    {
+      "name": "Bunny",
+      "aliases": [
+        "bunnynet",
+        "bunnycdn"
+      ]
+    },
+    {
+      "name": "Outfit7"
+    },
+    {
+      "name": "Celtra"
+    }
+  ],
+  "quality-vendor": [
+    {
+      "name": "Sauce Labs",
+      "aliases": [
+        "saucelabs"
+      ]
+    },
+    {
+      "name": "mabl"
+    },
+    {
+      "name": "SmartBear"
+    },
+    {
+      "name": "Sonar",
+      "aliases": [
+        "sonarsource",
+        "sonarqube"
+      ]
+    },
+    {
+      "name": "Testlio"
+    },
+    {
+      "name": "Applitools"
+    },
+    {
+      "name": "Tricentis"
+    },
+    {
+      "name": "BrowserStack"
+    },
+    {
+      "name": "LambdaTest"
+    },
+    {
+      "name": "Perfecto"
+    },
+    {
+      "name": "Cypress",
+      "aliases": [
+        "cypressio",
+        "cypress-io"
+      ]
+    },
+    {
+      "name": "Postman"
+    },
+    {
+      "name": "Katalon"
+    },
+    {
+      "name": "Testim"
+    },
+    {
+      "name": "Rainforest QA",
+      "aliases": [
+        "rainforestqa",
+        "rainforest"
+      ]
+    },
+    {
+      "name": "QA Wolf",
+      "aliases": [
+        "qawolf",
+        "qa-wolf"
+      ]
+    },
+    {
+      "name": "Autify"
+    },
+    {
+      "name": "Functionize"
+    },
+    {
+      "name": "ProdPerfect"
+    },
+    {
+      "name": "Launchable"
+    },
+    {
+      "name": "Codecov"
+    },
+    {
+      "name": "Codacy"
+    },
+    {
+      "name": "DeepSource"
+    },
+    {
+      "name": "Semgrep"
+    },
+    {
+      "name": "Sonatype"
+    },
+    {
+      "name": "Veracode"
+    },
+    {
+      "name": "Checkmarx"
+    },
+    {
+      "name": "Contrast Security",
+      "aliases": [
+        "contrastsecurity"
+      ]
+    },
+    {
+      "name": "Gremlin"
+    },
+    {
+      "name": "Steadybit"
+    },
+    {
+      "name": "Speedscale"
+    },
+    {
+      "name": "Pactflow",
+      "aliases": [
+        "smartbear"
+      ]
+    },
+    {
+      "name": "Xray",
+      "aliases": [
+        "xrayapp",
+        "xblend"
+      ]
+    },
+    {
+      "name": "TestRail",
+      "aliases": [
+        "gurock",
+        "idera"
+      ]
+    },
+    {
+      "name": "Qase"
+    },
+    {
+      "name": "Allure",
+      "aliases": [
+        "qametaio",
+        "qameta"
+      ]
+    },
+    {
+      "name": "Checkly",
+      "aliases": [
+        "checklyhq",
+        "checkly-hq"
+      ]
+    },
+    {
+      "name": "Sealights"
+    },
+    {
+      "name": "Diffblue"
+    },
+    {
+      "name": "Parasoft"
+    },
+    {
+      "name": "Eggplant",
+      "aliases": [
+        "eggplantsoftware",
+        "keysight"
+      ]
+    }
+  ],
+  "vc-point-nine": [
+    {
+      "name": "Contentful"
+    },
+    {
+      "name": "Algolia"
+    },
+    {
+      "name": "Typeform"
+    },
+    {
+      "name": "Loom"
+    },
+    {
+      "name": "Chainalysis"
+    },
+    {
+      "name": "PlanetScale"
+    },
+    {
+      "name": "Castor",
+      "aliases": [
+        "castordoc",
+        "castorhq"
+      ]
+    },
+    {
+      "name": "Recruitee"
+    },
+    {
+      "name": "Petlab",
+      "aliases": [
+        "petlabco"
+      ]
+    },
+    {
+      "name": "Gitpod"
+    },
+    {
+      "name": "Hive",
+      "aliases": [
+        "hivetech",
+        "hiveapp"
+      ]
+    },
+    {
+      "name": "Sastrify"
+    },
+    {
+      "name": "Silverfin"
+    },
+    {
+      "name": "Klaus",
+      "aliases": [
+        "klausapp"
+      ]
+    },
+    {
+      "name": "Vitally"
+    },
+    {
+      "name": "Livestorm"
+    },
+    {
+      "name": "Spendesk"
+    },
+    {
+      "name": "Pennylane"
+    },
+    {
+      "name": "Factorial",
+      "aliases": [
+        "factorialhr",
+        "factorial-hr"
+      ]
+    },
+    {
+      "name": "Bloom and Wild",
+      "aliases": [
+        "bloomandwild",
+        "bloomon"
+      ]
+    }
+  ],
+  "vc-cherry": [
+    {
+      "name": "Flixbus",
+      "aliases": [
+        "flix",
+        "flixmobility"
+      ]
+    },
+    {
+      "name": "Auto1",
+      "aliases": [
+        "auto1group"
+      ]
+    },
+    {
+      "name": "Forto"
+    },
+    {
+      "name": "Tourlane"
+    },
+    {
+      "name": "Infarm"
+    },
+    {
+      "name": "Talon",
+      "aliases": [
+        "talonone",
+        "talon-one"
+      ]
+    },
+    {
+      "name": "Moonfare"
+    },
+    {
+      "name": "Alasco"
+    },
+    {
+      "name": "Cluno"
+    },
+    {
+      "name": "Metaphysic"
+    },
+    {
+      "name": "Flomatika"
+    },
+    {
+      "name": "Rows"
+    },
+    {
+      "name": "Gigs",
+      "aliases": [
+        "gigscom",
+        "gigs-com"
+      ]
+    },
+    {
+      "name": "Juna",
+      "aliases": [
+        "junaenergy"
+      ]
+    },
+    {
+      "name": "Vay"
+    },
+    {
+      "name": "Tacto"
+    },
+    {
+      "name": "Kertos"
+    }
+  ],
+  "vc-project-a": [
+    {
+      "name": "Sennder"
+    },
+    {
+      "name": "Catawiki"
+    },
+    {
+      "name": "Spryker"
+    },
+    {
+      "name": "Homelike"
+    },
+    {
+      "name": "Katkin"
+    },
+    {
+      "name": "WorkMotion"
+    },
+    {
+      "name": "Voi",
+      "aliases": [
+        "voitechnology",
+        "voiscooters"
+      ]
+    },
+    {
+      "name": "Zenjob"
+    },
+    {
+      "name": "Vitrue Health",
+      "aliases": [
+        "vitruehealth"
+      ]
+    },
+    {
+      "name": "Ambient",
+      "aliases": [
+        "ambientai"
+      ]
+    },
+    {
+      "name": "Fincite"
+    },
+    {
+      "name": "Uberall"
+    },
+    {
+      "name": "Everphone"
+    },
+    {
+      "name": "Pactum"
+    },
+    {
+      "name": "Circus",
+      "aliases": [
+        "circusgroup",
+        "circussegmbh"
+      ]
+    },
+    {
+      "name": "Roadsurfer"
+    },
+    {
+      "name": "Fixfirst"
+    },
+    {
+      "name": "Nuvo",
+      "aliases": [
+        "getnuvo",
+        "nuvoapp"
+      ]
+    }
+  ],
+  "vc-hv": [
+    {
+      "name": "Depot",
+      "aliases": [
+        "depotdev",
+        "depot-dev"
+      ]
+    },
+    {
+      "name": "Rasa"
+    },
+    {
+      "name": "Cargo One",
+      "aliases": [
+        "cargoone",
+        "cargo-one"
+      ]
+    },
+    {
+      "name": "SpotMyMachine"
+    },
+    {
+      "name": "Xentral"
+    },
+    {
+      "name": "Cluey"
+    },
+    {
+      "name": "Sunhero"
+    },
+    {
+      "name": "Langdock"
+    },
+    {
+      "name": "Cradle",
+      "aliases": [
+        "cradlebio",
+        "cradle-bio"
+      ]
+    },
+    {
+      "name": "Blueshift"
+    }
+  ],
+  "vc-earlybird": [
+    {
+      "name": "Peak",
+      "aliases": [
+        "peakai",
+        "peak-ai"
+      ]
+    },
+    {
+      "name": "UiPath"
+    },
+    {
+      "name": "Movinga"
+    },
+    {
+      "name": "Fraugster"
+    },
+    {
+      "name": "Crossengage"
+    },
+    {
+      "name": "Aircall"
+    },
+    {
+      "name": "Nuri"
+    },
+    {
+      "name": "Compaion"
+    },
+    {
+      "name": "Carbmee"
+    },
+    {
+      "name": "Datasaur"
+    },
+    {
+      "name": "Fernride"
+    },
+    {
+      "name": "Simplifa"
+    },
+    {
+      "name": "Wingcopter"
+    },
+    {
+      "name": "Tsenso"
+    },
+    {
+      "name": "Nect"
+    }
+  ],
+  "vc-creandum": [
+    {
+      "name": "Depop"
+    },
+    {
+      "name": "Neko Health",
+      "aliases": [
+        "nekohealth",
+        "neko"
+      ]
+    },
+    {
+      "name": "Craft Docs",
+      "aliases": [
+        "craftdocs",
+        "craftdo"
+      ]
+    },
+    {
+      "name": "Airtame"
+    },
+    {
+      "name": "Epidemic Sound",
+      "aliases": [
+        "epidemicsound"
+      ]
+    },
+    {
+      "name": "Budbee"
+    },
+    {
+      "name": "Anyfin"
+    },
+    {
+      "name": "Juni",
+      "aliases": [
+        "junitech",
+        "junistore"
+      ]
+    },
+    {
+      "name": "Legora",
+      "aliases": [
+        "legoraai",
+        "leya"
+      ]
+    },
+    {
+      "name": "Lovable"
+    },
+    {
+      "name": "Sana",
+      "aliases": [
+        "sanalabs"
+      ]
+    },
+    {
+      "name": "Tibber"
+    }
+  ]
+}

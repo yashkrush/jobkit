@@ -1,5 +1,6 @@
 const express = require('express');
 const fs = require('fs').promises;
+const fsSync = require('fs');   // sync stat, for mtime ordering in the learning loop
 const path = require('path');
 const { spawn } = require('child_process');
 const { Document, Packer, Paragraph, TextRun, AlignmentType, LevelFormat, BorderStyle, TabStopType } = require('docx');
@@ -11,6 +12,9 @@ const discover = require('./discover');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+// DOCX author metadata. The docx library defaults to "Un-named", which looks machine-generated
+// in File > Properties. Real name, so a downloaded CV carries the same provenance a hand-written one would.
+const RESUME_AUTHOR = process.env.RESUME_AUTHOR || 'Yash Kulshreshtha';
 const ROOT = process.cwd();
 
 app.use(express.json({ limit: '20mb' }));
@@ -286,6 +290,7 @@ function buildDocx(data) {
   }
 
   const doc = new Document({
+    creator: RESUME_AUTHOR, lastModifiedBy: RESUME_AUTHOR, title: RESUME_AUTHOR + ' — CV', description: '',
     styles: { default: { document: { run: { font: 'Arial', size: 20 } } } },
     numbering: {
       config: [{
@@ -409,6 +414,7 @@ function mdToDocx(md) {
     }
   });
   const doc = new Document({
+    creator: RESUME_AUTHOR, lastModifiedBy: RESUME_AUTHOR, title: RESUME_AUTHOR + ' — CV', description: '',
     styles: { default: { document: { run: { font: 'Arial', size: 20 } } } },
     numbering: { config: [{ reference: 'bullets', levels: [{ level: 0, format: LevelFormat.BULLET, text: '•',
       alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 360, hanging: 200 } } } }] }] },
@@ -1621,10 +1627,17 @@ app.post('/api/extract-context', async (req, res) => {
       // Pick the user's SUBMITTED resume — exclude every generated/system .md so the loop never reads
       // a report (screen-/verify-), the JD, a cover letter, the stashed draft, or the machine-tailored
       // resume-<slug>-<date>.md as if it were the submission.
-      const GENERATED = /^(_draft|jd-|screen-|verify-|cover-letter-|pending-lessons)/;
+      // Every file this tool GENERATES, so the loop never mistakes one for the submission.
+      // `prep-` and `known-facts-` were missing until 2026-08-24: with .sort().reverse()
+      // (alphabetical, descending) "prep-20260630.md" outranked "Yash_Resume.md", so the
+      // learner read a /prep interview pack as the submitted résumé and reported its
+      // rehearsed talk-track lines as fabrication-log breaches on the CV.
+      const GENERATED = /^(_draft|jd-|screen-|verify-|cover-letter-|pending-lessons|prep-|known-facts-|SUPERSEDED-)/;
       const subMds = files
         .filter(f => f.endsWith('.md') && !GENERATED.test(f) && !/^resume-.+-\d{6,8}\.md$/.test(f))
-        .sort().reverse();
+        .map(f => ({ f, t: fsSync.statSync(path.join(coDir, f)).mtimeMs }))
+        .sort((a, b) => b.t - a.t)
+        .map(x => x.f);
       if (subMds.length) submittedText = (await fs.readFile(path.join(coDir, subMds[0]), 'utf8')).trim();
       // Fallback for resumes uploaded before PDF support: no .md yet — extract the
       // newest submitted PDF/DOCX on the fly and cache it as .md.
@@ -1912,6 +1925,8 @@ async function doDiscoverRun({ grade = true } = {}) {
   try {
     const cfg = await discover.loadConfig();
     let state = await discover.loadState();
+    await discover.migrateDropped(state);
+    const dropped = await discover.loadDropped();
     const resumeText = await getBaseResumeText();
 
     const r = await discover.runDiscovery(cfg, state, resumeText);
@@ -1957,13 +1972,24 @@ async function doDiscoverRun({ grade = true } = {}) {
       .filter((v, i, a) => a.findIndex(x => x.uid === v.uid) === i)
       .sort((a, b) => (order[a.verdict] ?? 2) - (order[b.verdict] ?? 2) || (b.atsScore ?? -1) - (a.atsScore ?? -1))
       .slice(0, 400);
-    state.dropped = [...r.dropped, ...(state.dropped || [])].slice(0, 3000);
+    // The reject audit trail is how false negatives get caught, so it has to hold a whole
+    // sweep's worth of drops. At ~200 boards that's tens of thousands of rows, well past the
+    // old 3k cap — it lives in its own file now, and a per-run reason tally is kept
+    // separately so the distribution stays readable even once rows age out.
+    dropped.rows = [...r.dropped, ...(dropped.rows || [])].slice(0, limits.maxDroppedRows ?? 60000);
+    dropped.tallies = [{ at: now, foundAt: now, counts: r.stats.dropReasons, total: r.dropped.length },
+      ...(dropped.tallies || [])].slice(0, 400);
+
     state.sourceErrors = r.sourceErrors;
+    state.timings = (r.timings || []).slice(0, 25);
     state.stats = { ...r.stats, graded: graded.length };
     state.lastRun = now;
+    state.lastRunFinishedAt = new Date().toISOString();
+    state.lastRunMs = Date.now() - new Date(discoverRun.startedAt).getTime();
 
-    discover.pruneOld(state, limits.keepDroppedDays ?? 14);
+    discover.pruneOld(state, limits.keepDroppedDays ?? 14, dropped);
     await discover.saveState(state);
+    await discover.saveDropped(dropped);
     discoverRun.phase = 'done';
   } catch (e) {
     discoverRun.error = e.message;
@@ -1999,18 +2025,32 @@ app.post('/api/discover/validate-source', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// How many reject rows travel to the browser. The audit trail on disk is far larger; the UI
+// only ever renders 300 at a time, so this is generous headroom for its client-side search
+// without shipping a 60k-row payload on every page load.
+const DROPPED_PAYLOAD_LIMIT = 4000;
+
 app.get('/api/discover/results', async (req, res) => {
   try {
     const state = await discover.loadState();
+    await discover.migrateDropped(state);
+    const dropped = await discover.loadDropped();
     // Recomputed on every read, not frozen at discovery time — you apply to things after a
     // posting was first seen, and the list has to notice that.
     const known = await knownCompanySlugs();
     res.json({
       results: (state.results || []).map(({ analysis, description, ...r }) => withKnown(r, known)),
-      dropped: state.dropped || [],
+      dropped: (dropped.rows || []).slice(0, DROPPED_PAYLOAD_LIMIT),
+      // Authoritative totals, so the view never understates what was thrown away just because
+      // the payload is capped.
+      droppedTotal: (dropped.rows || []).length,
+      droppedTally: discover.tallyReasons(dropped.rows || []),
+      droppedRuns: (dropped.tallies || []).slice(0, 20),
       sourceErrors: state.sourceErrors || [],
       stats: state.stats || {},
+      timings: state.timings || [],
       lastRun: state.lastRun || null,
+      lastRunMs: state.lastRunMs || null,
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

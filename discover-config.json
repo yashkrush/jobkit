@@ -4,7 +4,9 @@
   "limits": {
     "maxGradedPerRun": 0,
     "minAtsToGrade": 0,
-    "keepDroppedDays": 14
+    "keepDroppedDays": 14,
+    "fetchConcurrency": 10,
+    "maxDroppedRows": 60000
   },
   "filters": {
     "titleInclude": [
@@ -145,154 +147,2472 @@
       "slug": "n26",
       "name": "N26",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 82,
+        "sample": "AFC Analyst - Spanish Market"
+      },
+      "group": "berlin-dach"
     },
     {
       "type": "greenhouse",
       "slug": "traderepublic",
       "name": "Trade Republic",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 1,
+        "sample": "Customer Council"
+      },
+      "group": "berlin-dach"
     },
     {
       "type": "greenhouse",
       "slug": "sumup",
       "name": "SumUp",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 382,
+        "sample": "Account Manager (HVM) - German"
+      },
+      "group": "berlin-dach"
     },
     {
       "type": "greenhouse",
       "slug": "hellofresh",
       "name": "HelloFresh",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 366,
+        "sample": "Accountant (Maternity Cover) (all genders)"
+      },
+      "group": "berlin-dach"
     },
     {
       "type": "greenhouse",
       "slug": "contentful",
       "name": "Contentful",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 27,
+        "sample": "Analytical Engineer f/m/d"
+      },
+      "group": "berlin-dach"
     },
     {
       "type": "greenhouse",
       "slug": "getyourguide",
       "name": "GetYourGuide",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 54,
+        "sample": "Account Executive DACH (German Speaking)"
+      },
+      "group": "berlin-dach"
     },
     {
       "type": "greenhouse",
       "slug": "doctolib",
       "name": "Doctolib",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 133,
+        "sample": "Account Executive - Berlin (x/f/m)"
+      },
+      "group": "berlin-dach"
     },
     {
       "type": "greenhouse",
       "slug": "gitlab",
       "name": "GitLab",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 197,
+        "sample": "Account Executive - Italy"
+      },
+      "group": "eu-remote"
     },
     {
       "type": "greenhouse",
       "slug": "elastic",
       "name": "Elastic",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 256,
+        "sample": "ABM Manager, Global Public Sector"
+      },
+      "group": "eu-remote"
     },
     {
       "type": "greenhouse",
       "slug": "grafanalabs",
       "name": "Grafana Labs",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 146,
+        "sample": "Associate Observability Architect | EST | Remote"
+      },
+      "group": "eu-remote"
     },
     {
       "type": "greenhouse",
       "slug": "datadog",
       "name": "Datadog",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 437,
+        "sample": "AI Research Engineer - Datadog AI Research (DAIR)"
+      },
+      "group": "eu-remote"
     },
     {
       "type": "greenhouse",
       "slug": "cloudflare",
       "name": "Cloudflare",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 306,
+        "sample": "Account Executive, FedCiv"
+      },
+      "group": "eu-remote"
     },
     {
       "type": "greenhouse",
       "slug": "saucelabs",
       "name": "Sauce Labs",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 9,
+        "sample": "AI Architect"
+      },
+      "group": "quality-vendor"
     },
     {
       "type": "greenhouse",
       "slug": "mabl",
       "name": "mabl",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 3,
+        "sample": "Enterprise Account Executive (West Coast)"
+      },
+      "group": "quality-vendor"
     },
     {
       "type": "greenhouse",
       "slug": "smartbear",
       "name": "SmartBear",
       "enabled": true,
-      "verified": true
-    },
-    {
-      "type": "ashby",
-      "slug": "vercel",
-      "name": "Vercel",
-      "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 26,
+        "sample": "Accepting Applications for Future Opportunities - Renewals Specialist"
+      },
+      "group": "quality-vendor"
     },
     {
       "type": "ashby",
       "slug": "supabase",
       "name": "Supabase",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 55,
+        "sample": "Product Manager - Marketplace"
+      },
+      "group": "eu-remote"
     },
     {
       "type": "ashby",
       "slug": "linear",
       "name": "Linear",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 32,
+        "sample": "Senior / Staff Fullstack Engineer"
+      },
+      "group": "eu-remote"
     },
     {
       "type": "ashby",
       "slug": "ramp",
       "name": "Ramp",
       "enabled": true,
-      "verified": true
-    },
-    {
-      "type": "ashby",
-      "slug": "deel",
-      "name": "Deel",
-      "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 135,
+        "sample": "Security Engineer, Cloud"
+      },
+      "group": "eu-remote"
     },
     {
       "type": "ashby",
       "slug": "notion",
       "name": "Notion",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 128,
+        "sample": "Business Development Representative, New York"
+      },
+      "group": "eu-remote"
     },
     {
       "type": "ashby",
       "slug": "posthog",
       "name": "PostHog",
       "enabled": true,
-      "verified": true
+      "verified": {
+        "at": "2026-08-13",
+        "count": 14,
+        "sample": "Technical Account Executive - EMEA"
+      },
+      "group": "eu-remote"
+    },
+    {
+      "type": "personio",
+      "slug": "1komma5grad",
+      "name": "1Komma5",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 324,
+        "sample": "(Junior) Data Engineer - Data Platform (m/f/d)"
+      }
+    },
+    {
+      "type": "recruitee",
+      "slug": "adjust",
+      "name": "Adjust",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 29,
+        "sample": "Corporate Recruiter"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "alephalpha",
+      "name": "Aleph Alpha",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 2,
+        "sample": "Executive Assistant (f/m/d) to Co-CRO"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "amboss",
+      "name": "Amboss",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 22,
+        "sample": "Marketing Specialist - LATAM"
+      }
+    },
+    {
+      "type": "smartrecruiters",
+      "slug": "auto1",
+      "name": "Auto1",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 552,
+        "sample": "Commercial Acheteur Automobile (H/F)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "avimedical",
+      "name": "Avi Medical",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 33,
+        "sample": "Ärztliche Leitung (m/w/d) in Hausarztpraxis"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "babbel",
+      "name": "Babbel",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 4,
+        "sample": "Senior Manager, CRM Revenue Expansion"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "billie",
+      "name": "Billie",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 2,
+        "sample": "Lead Credit Risk Data Scientist"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "bird",
+      "name": "Bird",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 36,
+        "sample": "City Operations Manager - Kansas City"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "bitpanda",
+      "name": "Bitpanda",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 38,
+        "sample": "Associate, AFC Compliance"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "celonis",
+      "name": "Celonis",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 253,
+        "sample": "Account Executive - Energy"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "celus",
+      "name": "Celus",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 2,
+        "sample": "Communication and Engagement Working Student"
+      }
+    },
+    {
+      "type": "smartrecruiters",
+      "slug": "check24",
+      "name": "Check24",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 220,
+        "sample": "Werkstudent Softwareentwicklung (m/w/d)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "choco",
+      "name": "Choco",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 11,
+        "sample": "Customer Success Manager (German Speaking)"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "chrono24",
+      "name": "Chrono24",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 24,
+        "sample": "(Senior) AI Platform Engineer (m/f/d)"
+      }
+    },
+    {
+      "type": "recruitee",
+      "slug": "circula",
+      "name": "Circula",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 8,
+        "sample": "Werkstudent:in Produkt Marketing (m/w/d)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "clark",
+      "name": "Clark",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 19,
+        "sample": "Head of Sales"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "deepl",
+      "name": "DeepL",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 54,
+        "sample": "Senior Procurement Specialist"
+      }
+    },
+    {
+      "type": "smartrecruiters",
+      "slug": "deliveryhero",
+      "name": "Delivery Hero",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 1048,
+        "sample": "Lead, Strategy & Vendor Performance"
+      }
+    },
+    {
+      "type": "recruitee",
+      "slug": "distribusion",
+      "name": "Distribusion",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 32,
+        "sample": "Finance Manager, LATAM (all genders)"
+      }
+    },
+    {
+      "type": "lever",
+      "slug": "emma-sleep",
+      "name": "Emma",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 62,
+        "sample": "Accounting Intern (full-time)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "enpal",
+      "name": "Enpal",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 141,
+        "sample": "Sales Account Manager – Commercial & Industrial | Settore Fotovoltaico"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "finanzcheck",
+      "name": "Finanzcheck",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 28,
+        "sample": "Absicherungsspezialist - Kredit im Homeoffice (w/m/d)"
+      }
+    },
+    {
+      "type": "lever",
+      "slug": "finn",
+      "name": "Finn",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 32,
+        "sample": "(Junior) Account Manager (m/w/d)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "flink",
+      "name": "Flink",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 3,
+        "sample": "Field Robotics Engineer"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "flix",
+      "name": "Flix",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 154,
+        "sample": "Account Management Executive - B2B Partnerships (contractual)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "forto",
+      "name": "Forto",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 13,
+        "sample": "Team Lead Trade Analytics & Market Intelligence (f/m/d)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "freenow",
+      "name": "Free Now",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 46,
+        "sample": "Account Executive - B2B SaaS"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "frontify",
+      "name": "Frontify",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 18,
+        "sample": "Senior Technical Support Engineer"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "gostudent",
+      "name": "GoStudent",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 26,
+        "sample": "Account Manager Italy (all Genders)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "grover",
+      "name": "Grover",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 11,
+        "sample": "Account Executive (German Speaking) (m/w/x)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "helsing",
+      "name": "Helsing",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 137,
+        "sample": "Accounts Payable Lead"
+      }
+    },
+    {
+      "type": "smartrecruiters",
+      "slug": "home24",
+      "name": "Home24",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 9,
+        "sample": "Supervisor / Teamleiter (m/w) Kundenservice"
+      }
+    },
+    {
+      "type": "recruitee",
+      "slug": "instagrid",
+      "name": "Instagrid",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 13,
+        "sample": "Working Student - Logistics (f/m/d)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "isaraerospace",
+      "name": "Isar Aerospace",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 99,
+        "sample": "AIT Operations Engineer - Launch Vehicle (m/f/d)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "konux",
+      "name": "Konux",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 4,
+        "sample": "Engineering Manager (m/f/x)"
+      }
+    },
+    {
+      "type": "smartrecruiters",
+      "slug": "kununu",
+      "name": "Kununu",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 1,
+        "sample": "Sales"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "ledgy",
+      "name": "Ledgy",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 17,
+        "sample": "Engineering Manager (Hands-on)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "luminovo",
+      "name": "Luminovo",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 3,
+        "sample": "Business Development (BDR) | DACH (d/f/m)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "marvelfusion",
+      "name": "Marvel Fusion",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 11,
+        "sample": "Controls Engineer (f/m/x)"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "merantix",
+      "name": "Merantix",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 14,
+        "sample": "Chief Scientific / Medical Officer (Stealth Photonic Bio-sensing Ventu"
+      }
+    },
+    {
+      "type": "workable",
+      "slug": "mondu",
+      "name": "Mondu",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 3,
+        "sample": "(Senior) Sales Manager, Italian Market"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "moss",
+      "name": "Moss",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 34,
+        "sample": "Business Development Representative - Netherlands (f/m/d)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "nelly",
+      "name": "Nelly",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 17,
+        "sample": "Business Development Manager:in"
+      }
+    },
+    {
+      "type": "smartrecruiters",
+      "slug": "nexthink",
+      "name": "Nexthink",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 93,
+        "sample": "Accounts Payable Specialist"
+      }
+    },
+    {
+      "type": "smartrecruiters",
+      "slug": "omio",
+      "name": "Omio",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 2,
+        "sample": "Customer Service Specialist"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "onrunning",
+      "name": "On Running",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 344,
+        "sample": "Accessories Quality Engineer (backpack, headwear,...)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "ostrom",
+      "name": "Ostrom",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 4,
+        "sample": "Head of Marketing (m/w/d)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "parloa",
+      "name": "Parloa",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 54,
+        "sample": "Agent Architect, Partner Success"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "payrails",
+      "name": "Payrails",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 2,
+        "sample": "Backend Engineer"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "personio",
+      "name": "Personio",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 1,
+        "sample": "Staff Software Engineer, Data Platform"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "pleo",
+      "name": "Pleo",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 42,
+        "sample": "Solution Engineer - UK/I"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "pliant",
+      "name": "Pliant",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 49,
+        "sample": "Risk Operations Specialist, Strategic Operations (m/f/d)"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "prewave",
+      "name": "Prewave",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 9,
+        "sample": "B2B Customer Support Specialist (f/m/d)"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "proglove",
+      "name": "Proglove",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 7,
+        "sample": "Channel Growth Manager"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "raisin",
+      "name": "Raisin",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 33,
+        "sample": "AFC Operations Manager (m/f/d)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "scandit",
+      "name": "Scandit",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 16,
+        "sample": "Business Development Representative"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "scout24",
+      "name": "Scout24",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 27,
+        "sample": "Account Executive - Outbound Sales (m/w/d)"
+      }
+    },
+    {
+      "type": "smartrecruiters",
+      "slug": "sixt",
+      "name": "Sixt",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 552,
+        "sample": "Agent Telesales Hunter"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "smallpdf",
+      "name": "Smallpdf",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 2,
+        "sample": "Head of SEO and AI Visibility"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "solarisbank",
+      "name": "Solarisbank",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 35,
+        "sample": "Credit Risk Manager (f/m/d)"
+      }
+    },
+    {
+      "type": "smartrecruiters",
+      "slug": "sportradar",
+      "name": "Sportradar",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 60,
+        "sample": "Office Manager & Executive Assistant (m/f/d)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "staffbase",
+      "name": "Staffbase",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 29,
+        "sample": "Engineering Manager, Data & Analytics"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "storyblok",
+      "name": "Storyblok",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 13,
+        "sample": "Accountant Specialist - Austria / Germany m/w/d"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "tourlane",
+      "name": "Tourlane",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 7,
+        "sample": "Customer Success Manager France (f/m/x)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "trivago",
+      "name": "Trivago",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 9,
+        "sample": "Consumer Insights Manager"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "urbansportsclub",
+      "name": "Urban Sports Club",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 4,
+        "sample": "Director B2B2C Growth Partnerships (all genders)"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "userlane",
+      "name": "Userlane",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 5,
+        "sample": "Enterprise Sales Director, Healthcare & Life Sciences (US)"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "verivox",
+      "name": "Verivox",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 6,
+        "sample": "Bankkaufmann / Kundenberater (m/w/d)"
+      }
+    },
+    {
+      "type": "smartrecruiters",
+      "slug": "wayfair",
+      "name": "Wayfair",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 1,
+        "sample": "Spanish Bilingual Service Consultant"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "westwing",
+      "name": "Westwing",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 69,
+        "sample": "(Senior) Legal Counsel (m/w/d)"
+      }
+    },
+    {
+      "type": "smartrecruiters",
+      "slug": "wundermobility",
+      "name": "Wunder Mobility",
+      "enabled": true,
+      "group": "berlin-dach",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 2,
+        "sample": "Head of Engineering - Rent"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "1password",
+      "name": "1Password",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 61,
+        "sample": "Senior Revenue Strategy Analyst"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "adyen",
+      "name": "Adyen",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 221,
+        "sample": "Account Manager"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "airtable",
+      "name": "Airtable",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 17,
+        "sample": "Account Executive, Strategic Accounts"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "algolia",
+      "name": "Algolia",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 35,
+        "sample": "Business Development Representative"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "bitwarden",
+      "name": "Bitwarden",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 20,
+        "sample": "Channel Account Executive (APAC)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "buffer",
+      "name": "Buffer",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 3,
+        "sample": "Senior Growth Engineer"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "bunny",
+      "name": "Bunny",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 1,
+        "sample": "Product Manager"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "chainguard",
+      "name": "Chainguard",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 82,
+        "sample": "Business Development Representative - Benelux"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "circleci",
+      "name": "CircleCI",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 5,
+        "sample": "Sales Manager"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "clickhouse",
+      "name": "Clickhouse",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 178,
+        "sample": "シニアコンサルティングエンジニア"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "cockroachlabs",
+      "name": "Cockroach Labs",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 29,
+        "sample": "Account Executive, Singapore"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "cognite",
+      "name": "Cognite",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 53,
+        "sample": "Account Executive, Chemical Manufacturing"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "confluent",
+      "name": "Confluent",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 30,
+        "sample": "Senior Software Engineer"
+      }
+    },
+    {
+      "type": "lever",
+      "slug": "contentsquare",
+      "name": "Contentsquare",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 19,
+        "sample": "Enterprise Account Executive - KSA"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "docker",
+      "name": "Docker",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 56,
+        "sample": "Senior Sales Engineer, Strategic Accounts (US)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "docplanner",
+      "name": "Docplanner",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 38,
+        "sample": "Global Marketing Operations and Technology Specialist"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "duolingo",
+      "name": "Duolingo",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 67,
+        "sample": "Ad Sales Lead, Central"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "figma",
+      "name": "Figma",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 158,
+        "sample": "Account Executive, Emerging Enterprise (Berlin, Germany)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "glia",
+      "name": "Glia",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 28,
+        "sample": "Business Development Representative"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "honeycomb",
+      "name": "Honeycomb",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 16,
+        "sample": "Field Marketing Specialist"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "hopper",
+      "name": "Hopper",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 44,
+        "sample": "Director of Revenue Accounting (100% Remote - USA)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "jfrog",
+      "name": "JFrog",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 34,
+        "sample": "Account Executive"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "lunar",
+      "name": "Lunar",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 14,
+        "sample": "Clinical Workflow Informaticist"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "miro",
+      "name": "Miro",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 42,
+        "sample": "Director Product Design"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "mollie",
+      "name": "Mollie",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 37,
+        "sample": "Business Support Specialist - Dutch"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "mongodb",
+      "name": "MongoDB",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 415,
+        "sample": "Account Development Representative"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "monzo",
+      "name": "Monzo",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 79,
+        "sample": "Android Engineer"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "mozilla",
+      "name": "Mozilla",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 86,
+        "sample": "Creative Producer, Europe (Contract)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "neo4j",
+      "name": "Neo4j",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 39,
+        "sample": "Cloud Operations Engineer"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "netlify",
+      "name": "Netlify",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 3,
+        "sample": "Senior Financial Analyst"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "newrelic",
+      "name": "New Relic",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 63,
+        "sample": "Account Executive - Enterprise Sales"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "nord-security",
+      "name": "Nord Security",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 134,
+        "sample": "IOS Engineer | Senior | Active Growth Squad"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "okta",
+      "name": "Okta",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 335,
+        "sample": "Account Executive Auth0"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "ory",
+      "name": "Ory",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 1,
+        "sample": "Software Engineer"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "outfit7",
+      "name": "Outfit7",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 14,
+        "sample": "Ad Monetization Expert"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "oyster",
+      "name": "Oyster",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 20,
+        "sample": "Customer Success Manager (EMEA)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "percona",
+      "name": "Percona",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 8,
+        "sample": "PostgreSQL Database Support Engineer - EMEA (Remote)"
+      }
+    },
+    {
+      "type": "lever",
+      "slug": "pipedrive",
+      "name": "Pipedrive",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 16,
+        "sample": "Data Protection Officer"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "preply",
+      "name": "Preply",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 119,
+        "sample": "Senior Back-End Engineer"
+      }
+    },
+    {
+      "type": "lever",
+      "slug": "prismic",
+      "name": "Prismic",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 6,
+        "sample": "Account Executive"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "railway",
+      "name": "Railway",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 8,
+        "sample": "Senior Full-Stack Engineer - Product"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "redis",
+      "name": "Redis",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 21,
+        "sample": "Regional Account Executive"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "relex",
+      "name": "Relex",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 38,
+        "sample": "Account Executive, Growth - North America"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "remotecom",
+      "name": "Remote",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 224,
+        "sample": "Accountant"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "render",
+      "name": "Render",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 35,
+        "sample": "Software Engineer, Product (all levels)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "sanity",
+      "name": "Sanity",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 23,
+        "sample": "Senior Solution Architect (US/Canada)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "sentry",
+      "name": "Sentry",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 46,
+        "sample": "Staff Machine Learning Engineer, AI"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "smartlyio",
+      "name": "Smartly",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 75,
+        "sample": "Agency Customer Success Manager"
+      }
+    },
+    {
+      "type": "lever",
+      "slug": "spotify",
+      "name": "Spotify",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 101,
+        "sample": "Advertiser Solutions Vendor Lead - Programmatic and Direct Support"
+      }
+    },
+    {
+      "type": "workable",
+      "slug": "starling-bank",
+      "name": "Starling Bank",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 41,
+        "sample": "Android Engineer"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "stripe",
+      "name": "Stripe",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 564,
+        "sample": "Account Executive, Bridge"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "sumsub",
+      "name": "Sumsub",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 3,
+        "sample": "General Application"
+      }
+    },
+    {
+      "type": "lever",
+      "slug": "sysdig",
+      "name": "Sysdig",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 15,
+        "sample": "Director of Security Engineering"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "tailscale",
+      "name": "Tailscale",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 57,
+        "sample": "Billing Engineer"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "goteleport",
+      "name": "Teleport",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 22,
+        "sample": "Enterprise Senior Account Development Representative"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "truecaller",
+      "name": "Truecaller",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 27,
+        "sample": "Ad Operations Manager - Performance Marketing"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "twilio",
+      "name": "Twilio",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 164,
+        "sample": "Account Executive 4"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "typeform",
+      "name": "Typeform",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 13,
+        "sample": "Customer Success Manager"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "vercel",
+      "name": "Vercel",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 83,
+        "sample": "Account Executive, Commercial"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "veriff",
+      "name": "Veriff",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 12,
+        "sample": "AP Accountant (Parental Leave Cover)"
+      }
+    },
+    {
+      "type": "smartrecruiters",
+      "slug": "wise",
+      "name": "Wise",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 421,
+        "sample": "Senior Researcher"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "wolt",
+      "name": "Wolt",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 242,
+        "sample": "Account Associate"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "yugabyte",
+      "name": "Yugabyte",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 14,
+        "sample": "Director of Engineering, Core Database"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "zapier",
+      "name": "Zapier",
+      "enabled": true,
+      "group": "eu-remote",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 10,
+        "sample": "Sales Assist Representative"
+      }
+    },
+    {
+      "type": "recruitee",
+      "slug": "applitools",
+      "name": "Applitools",
+      "enabled": true,
+      "group": "quality-vendor",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 1,
+        "sample": "Office Manager"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "checkly",
+      "name": "Checkly",
+      "enabled": true,
+      "group": "quality-vendor",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 3,
+        "sample": "Don't see the role you're looking for? Join our Talent Community!"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "cypressio",
+      "name": "Cypress",
+      "enabled": true,
+      "group": "quality-vendor",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 2,
+        "sample": "Enterprise & Mid-Market Account Manager, EMEA"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "gremlin",
+      "name": "Gremlin",
+      "enabled": true,
+      "group": "quality-vendor",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 3,
+        "sample": "Data Scientist, AI/ML"
+      }
+    },
+    {
+      "type": "smartrecruiters",
+      "slug": "parasoft",
+      "name": "Parasoft",
+      "enabled": true,
+      "group": "quality-vendor",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 1,
+        "sample": "Enterprise Account Manager"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "postman",
+      "name": "Postman",
+      "enabled": true,
+      "group": "quality-vendor",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 105,
+        "sample": "Account Development Representative"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "qawolf",
+      "name": "QA Wolf",
+      "enabled": true,
+      "group": "quality-vendor",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 2,
+        "sample": "Commercial Account Executive, West"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "semgrep",
+      "name": "Semgrep",
+      "enabled": true,
+      "group": "quality-vendor",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 18,
+        "sample": "Senior/Staff Product Manager"
+      }
+    },
+    {
+      "type": "lever",
+      "slug": "sonarsource",
+      "name": "Sonar",
+      "enabled": true,
+      "group": "quality-vendor",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 122,
+        "sample": "Account Based Marketing (ABM) Manager"
+      }
+    },
+    {
+      "type": "lever",
+      "slug": "sonatype",
+      "name": "Sonatype",
+      "enabled": true,
+      "group": "quality-vendor",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 34,
+        "sample": "Account Executive (Inside Sales), Federal"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "testlio",
+      "name": "Testlio",
+      "enabled": true,
+      "group": "quality-vendor",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 14,
+        "sample": "Business Development Representative (Remote in United States)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "veracode",
+      "name": "Veracode",
+      "enabled": true,
+      "group": "quality-vendor",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 13,
+        "sample": "Future Opportunities in Sales"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "alasco",
+      "name": "Alasco",
+      "enabled": true,
+      "group": "vc-cherry",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 11,
+        "sample": "Backend Engineer"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "gigs",
+      "name": "Gigs",
+      "enabled": true,
+      "group": "vc-cherry",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 39,
+        "sample": "Central Expansion Lead"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "juna",
+      "name": "Juna",
+      "enabled": true,
+      "group": "vc-cherry",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 3,
+        "sample": "(Senior) Finance Manager (m./w./d.)"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "kertos",
+      "name": "Kertos",
+      "enabled": true,
+      "group": "vc-cherry",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 13,
+        "sample": "(Senior) Information Security Expert (all genders)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "moonfare",
+      "name": "Moonfare",
+      "enabled": true,
+      "group": "vc-cherry",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 11,
+        "sample": "Director of Data (m/f/d)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "tacto",
+      "name": "Tacto",
+      "enabled": true,
+      "group": "vc-cherry",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 28,
+        "sample": "Head of Product Design"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "talonone",
+      "name": "Talon",
+      "enabled": true,
+      "group": "vc-cherry",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 19,
+        "sample": "Campaign Manager"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "vay",
+      "name": "Vay",
+      "enabled": true,
+      "group": "vc-cherry",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 12,
+        "sample": "Field Support Agent (Afternoon Shift - Part Time)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "craftdocs",
+      "name": "Craft Docs",
+      "enabled": true,
+      "group": "vc-creandum",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 3,
+        "sample": "Product Engineer (all level)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "epidemic-sound",
+      "name": "Epidemic Sound",
+      "enabled": true,
+      "group": "vc-creandum",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 19,
+        "sample": "VP of Engineering - Foundational Platform"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "legora",
+      "name": "Legora",
+      "enabled": true,
+      "group": "vc-creandum",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 283,
+        "sample": "Legal Engineer, Law Firms"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "lovable",
+      "name": "Lovable",
+      "enabled": true,
+      "group": "vc-creandum",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 61,
+        "sample": "1_Candidatura Spontanea"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "neko-health",
+      "name": "Neko Health",
+      "enabled": true,
+      "group": "vc-creandum",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 102,
+        "sample": "Director of Financial Control"
+      }
+    },
+    {
+      "type": "lever",
+      "slug": "aircall",
+      "name": "Aircall",
+      "enabled": true,
+      "group": "vc-earlybird",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 77,
+        "sample": "Account Executive - Small Business"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "carbmee",
+      "name": "Carbmee",
+      "enabled": true,
+      "group": "vc-earlybird",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 9,
+        "sample": "(Senior) Full-stack Engineer | Carbmee"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "peak",
+      "name": "Peak",
+      "enabled": true,
+      "group": "vc-earlybird",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 55,
+        "sample": "Clinic Director"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "simplifa",
+      "name": "Simplifa",
+      "enabled": true,
+      "group": "vc-earlybird",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 3,
+        "sample": "Mitarbeiter Aufzugsbegehung (m/w/d)"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "uipath",
+      "name": "UiPath",
+      "enabled": true,
+      "group": "vc-earlybird",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 126,
+        "sample": "Senior Software Engineer"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "wingcopter",
+      "name": "Wingcopter",
+      "enabled": true,
+      "group": "vc-earlybird",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 12,
+        "sample": "(Senior) Autonomous Flight Software Engineer (m/f/d)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "blueshift",
+      "name": "Blueshift",
+      "enabled": true,
+      "group": "vc-hv",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 1,
+        "sample": "AI Solutions Engineer II"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "cargo-one",
+      "name": "Cargo One",
+      "enabled": true,
+      "group": "vc-hv",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 2,
+        "sample": "Content Operations QA Analyst"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "cradlebio",
+      "name": "Cradle",
+      "enabled": true,
+      "group": "vc-hv",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 7,
+        "sample": "Frontend Software Engineer"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "depot",
+      "name": "Depot",
+      "enabled": true,
+      "group": "vc-hv",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 2,
+        "sample": "Staff Software Engineer"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "langdock",
+      "name": "Langdock",
+      "enabled": true,
+      "group": "vc-hv",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 19,
+        "sample": "Account Executive - AI & Enterprise Solutions - m/f/d"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "rasa",
+      "name": "Rasa",
+      "enabled": true,
+      "group": "vc-hv",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 2,
+        "sample": "Enterprise Account Executive - USA"
+      }
+    },
+    {
+      "type": "lever",
+      "slug": "bloomon",
+      "name": "Bloom and Wild",
+      "enabled": true,
+      "group": "vc-point-nine",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 9,
+        "sample": "Customer Support Associate (Dutch Speaking)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "hive",
+      "name": "Hive",
+      "enabled": true,
+      "group": "vc-point-nine",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 18,
+        "sample": "Account Manager - Germany (f/m/d) | C2 German Required"
+      }
+    },
+    {
+      "type": "recruitee",
+      "slug": "livestorm",
+      "name": "Livestorm",
+      "enabled": true,
+      "group": "vc-point-nine",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 2,
+        "sample": "Account Executive Enterprise"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "pennylane",
+      "name": "Pennylane",
+      "enabled": true,
+      "group": "vc-point-nine",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 127,
+        "sample": "Spécialiste Support Pilotage et Comptabilité (Télétravail complet poss"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "planetscale",
+      "name": "PlanetScale",
+      "enabled": true,
+      "group": "vc-point-nine",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 9,
+        "sample": "Developer Educator"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "vitally",
+      "name": "Vitally",
+      "enabled": true,
+      "group": "vc-point-nine",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 1,
+        "sample": "Lead Product Designer (UI/UX) (NYC/remote)"
+      }
+    },
+    {
+      "type": "greenhouse",
+      "slug": "catawiki",
+      "name": "Catawiki",
+      "enabled": true,
+      "group": "vc-project-a",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 53,
+        "sample": "Account Manager, French art market (maternity cover)"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "circus",
+      "name": "Circus",
+      "enabled": true,
+      "group": "vc-project-a",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 7,
+        "sample": "(Senior) Financial Accountant / Bilanzbuchhalter:in (f/m/d)"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "everphone",
+      "name": "Everphone",
+      "enabled": true,
+      "group": "vc-project-a",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 6,
+        "sample": "Account Executive (w/m/d)"
+      }
+    },
+    {
+      "type": "personio",
+      "slug": "katkin",
+      "name": "Katkin",
+      "enabled": true,
+      "group": "vc-project-a",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 3,
+        "sample": "Brand Ambassador - Manchester"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "uberall",
+      "name": "Uberall",
+      "enabled": true,
+      "group": "vc-project-a",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 16,
+        "sample": "Business Development Representative (BDR)"
+      }
+    },
+    {
+      "type": "workable",
+      "slug": "workmotion",
+      "name": "WorkMotion",
+      "enabled": true,
+      "group": "vc-project-a",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 7,
+        "sample": "HR Operations Specialist"
+      }
+    },
+    {
+      "type": "ashby",
+      "slug": "zenjob",
+      "name": "Zenjob",
+      "enabled": true,
+      "group": "vc-project-a",
+      "verified": {
+        "at": "2026-08-13",
+        "count": 12,
+        "sample": "Lead Revenue Operations - Product & Systems (f/m/d)"
+      }
     }
   ]
 }
