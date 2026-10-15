@@ -63,18 +63,9 @@
     <div class="panel-header">
       <div class="panel-title">Discover<small>Fresh roles from public job boards — free to browse</small></div>
       <button class="ghost btn-sm" id="disc-refresh">Refresh</button>
-      <button class="primary btn-sm" id="disc-run">Check what's new</button>
+      <button class="ghost btn-sm" id="disc-run">Check what's new</button>
+      <button class="primary btn-sm" id="disc-triage">⚡ Triage</button>
     </div>
-
-    <details class="explain">
-      <summary>How this works — and what costs anything</summary>
-      <div class="explain-body">
-        <p>Fetching job boards is <strong>free</strong>. There are two ways in:</p>
-        <p><strong>Search</strong> — look for specific titles right now, across everything currently posted, ignoring your saved filters.</p>
-        <p><strong>Check what's new</strong> — uses your saved filters and shows only postings you haven't seen before.</p>
-        <p>The only paid step is pressing <strong>Grade</strong> on a role, which runs the real APPLY / MAYBE / SKIP analysis. Nothing grades itself unless you tell it to.</p>
-      </div>
-    </details>
 
     <div class="progress-bar" id="disc-progress" hidden>
       <div class="progress-spinner"></div>
@@ -84,8 +75,8 @@
     <div id="disc-meta" class="hint" style="margin:10px 0"></div>
     <div id="disc-errors" hidden style="margin-bottom:12px;padding:10px 12px;border:1px solid var(--amber,#e0a23c);border-radius:8px;background:rgba(224,162,60,0.07);font-size:13px"></div>
 
-    <div class="search-card">
-      <div class="search-card-title">🔍 Search every board, right now</div>
+    <details class="search-card" id="disc-search-wrap">
+      <summary class="search-card-title">🔍 Search every board, right now</summary>
       <div class="search-card-fields">
         <div style="flex:2;min-width:240px">
           <label style="margin-top:0">Job titles <span>— comma-separated</span></label>
@@ -100,10 +91,30 @@
       <p class="hint" style="margin:6px 0 0">Free. Ignores your saved filters. <strong>Grade</strong> on a row is the only paid step.</p>
       <div id="disc-search-meta" class="hint" style="margin-top:8px"></div>
       <div id="disc-search-results" style="margin-top:8px"></div>
-    </div>
+    </details>
 
-    <div class="row" id="disc-filter-chips" style="margin-bottom:6px"></div>
+    <div class="disc-toolbar">
+      <div class="row" id="disc-filter-chips"></div>
+      <div class="disc-view-ctl">
+        <input type="text" id="disc-list-search" placeholder="Filter by title or company…" />
+        <label class="inline-check"><input type="checkbox" id="disc-group" checked /> Group by company</label>
+      </div>
+    </div>
     <div id="disc-results"></div>
+
+    <details class="disc-settings">
+      <summary>⚙ Settings — filters, sources, and what the filter dropped</summary>
+      <div class="disc-settings-body">
+
+    <details class="explain">
+      <summary>How this works — and what costs anything</summary>
+      <div class="explain-body">
+        <p>Fetching job boards is <strong>free</strong>. There are two ways in:</p>
+        <p><strong>Search</strong> — look for specific titles right now, across everything currently posted, ignoring your saved filters.</p>
+        <p><strong>Check what's new</strong> — uses your saved filters and shows only postings you haven't seen before.</p>
+        <p>The only paid step is pressing <strong>Grade</strong> on a role, which runs the real APPLY / MAYBE / SKIP analysis. Nothing grades itself unless you tell it to.</p>
+      </div>
+    </details>
 
     <details class="analysis-details" id="disc-dropped-wrap">
       <summary>Dropped by the filter — check what it threw away</summary>
@@ -168,6 +179,9 @@
         <button class="primary btn-sm" id="disc-add-source">Add</button>
       </div>
       <div id="disc-source-status" class="hint"></div>
+    </details>
+
+      </div>
     </details>
   </section>
 
@@ -374,6 +388,7 @@
     <div class="co-layout">
       <aside class="co-sidebar">
         <input id="company-search" class="co-search" type="text" placeholder="Search companies…" autocomplete="off" />
+        <div class="co-chips" id="company-chips"></div>
         <div id="company-list"></div>
       </aside>
 
@@ -482,6 +497,31 @@
     </div>
   </section>
 </main>
+
+<!-- TRIAGE — one posting at a time, keyboard-driven. The list view is for browsing;
+     this is for actually getting through 90 of them. -->
+<div id="triage" class="triage" hidden>
+  <div class="triage-bar">
+    <div class="triage-progress"><div class="triage-progress-fill" id="triage-fill"></div></div>
+    <span class="triage-count" id="triage-count"></span>
+    <span class="triage-keys">
+      <kbd>J</kbd> skip &nbsp;<kbd>K</kbd> back &nbsp;<kbd>S</kbd> shortlist &nbsp;<kbd>X</kbd> hide
+      &nbsp;<kbd>G</kbd> grade &nbsp;<kbd>T</kbd> tailor &nbsp;<kbd>O</kbd> open &nbsp;<kbd>Esc</kbd> close
+    </span>
+    <button class="ghost btn-sm" id="triage-close" style="margin-left:auto">Done</button>
+  </div>
+  <div class="triage-stage">
+    <div class="triage-card" id="triage-card"></div>
+  </div>
+  <div class="triage-actions">
+    <button class="ghost triage-btn" id="triage-prev">← Back</button>
+    <button class="ghost triage-btn" id="triage-hide">✕ Hide</button>
+    <button class="ghost triage-btn triage-star" id="triage-star">★ Shortlist</button>
+    <button class="ghost triage-btn" id="triage-grade">Grade</button>
+    <button class="ghost triage-btn" id="triage-tailor">Tailor →</button>
+    <button class="primary triage-btn" id="triage-next">Skip →</button>
+  </div>
+</div>
 
 <script src="app.js"></script>
 </body>

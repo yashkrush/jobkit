@@ -96,10 +96,11 @@ agent must never use, plus honesty rules such as "name the gap rather than inven
 score is explicitly not allowed to justify adding a skill that isn't real.
 
 **Two independent quality gates.** After a draft is written, the server runs two separate `claude -p`
-passes. A screening gate checks must-have keyword coverage, top-third placement, and an honest domain-gap
-ceiling it can't fake away. A verify gate traces every claim back to the achievement bank and blocks
-banned phrasings. A verifier never grades the pass that wrote the draft, and the output isn't trusted
-until it clears both.
+passes in the background. A screening gate checks must-have keyword coverage, top-third placement, and
+an honest domain-gap ceiling it can't fake away. A verify gate traces every claim back to the
+achievement bank and flags banned phrasings. A verifier never grades the pass that wrote the draft,
+and gates report only — they never edit the saved résumé, so the file the user reviewed is the file
+that ships.
 
 **Fast/slow split.** Anything user-facing, such as a file save, mark-sent or pipeline upsert, responds
 in under 2s with a direct file write. The slow LLM steps run afterwards and update the UI when they
@@ -166,7 +167,7 @@ triggers the command. Logic changes are prompt edits, not redeploys.
 - **Frontend:** vanilla HTML, CSS and JS in `public/`. No build step, no framework.
 - **Documents:** `docx` to generate, `mammoth` to read .docx, `pdf-parse` to read .pdf, `marked` for
   Markdown to HTML.
-- **Scoring:** `ats.js`, `plain.js` and `discover.js`. Self-contained, dependency-free, deterministic.
+- **Scoring:** `ats.js`, `plain.js`, `consistency.js`, `presend.js` and `discover.js`. Self-contained, dependency-free, deterministic.
 
 ### The learning loop, concretely
 
@@ -277,6 +278,8 @@ different project, which is rather the point of open-sourcing this one.
 server.js              Express server, endpoints, doc generation, Claude spawn helper
 ats.js                 Deterministic ATS keyword-coverage scorer
 plain.js               Deterministic plain-language scan (flags AI-sounding prose)
+consistency.js         Cross-application consistency gate (same person as everything already sent?)
+presend.js             Pre-send artefact check (stale DOCX, pronouns, metadata, length)
 discover.js            Job sourcing from public ATS boards + deterministic filtering
 discover-config.json   Boards to scan, title/location filters, cost limits
 public/                Vanilla JS frontend (index.html, app.js, style.css)

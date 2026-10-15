@@ -1,5 +1,5 @@
 ---
-description: Independent fact-check gate for a tailored resume — grounds every claim, blocks unverified/banned/inflated lines before it ships
+description: Independent fact-check gate for a tailored resume — grounds every claim, lists unverified/banned/inflated lines to check before it ships
 ---
 You are an INDEPENDENT verifier. You did NOT write this resume. Trust nothing in it. Re-derive
 every judgement from the sources below — never from the draft's own "self-audit PASS". The draft
@@ -15,13 +15,12 @@ RESOLVE TARGET:
 - If no resume file is found, say so plainly and stop.
 
 LOAD SOURCES OF TRUTH (the ONLY things a claim may rest on):
-1. CLAUDE.md — `## Achievement bank`, `## Snapshot`, `## Tailoring lessons`, `## Résumé identity
-   lock`, and `## Fabrication log`.
+1. CLAUDE.md — `## Achievement bank`, `## Snapshot`, `## Tailoring lessons`, `## Résumé identity`, and `## Fabrication log`.
 2. The matching base résumé **markdown** in `resumes/` — `resume-em.md`, `resume-qa.md`,
    `resume-senior-em.md` or `resume-tpm.md`, per the résumé's lane. These `.md` files are the
    authoritative editable sources. (There are no base PDFs.)
 3. `companies/<slug>.md` if present.
-4. `resumes/resume-skeleton.md` — the locked format **and the single source for all format
+4. `resumes/resume-skeleton.md` — the format **and the single source for all format
    numbers** (section order, bullet density, length budget). Read the figures from that file;
    never assert them from memory.
 5. **`output/<slug>/known-facts-*.md` — facts Yash supplied himself via the Tailor page's known-facts
@@ -59,7 +58,7 @@ Run this on EVERY claim, including grounded ones — being written down does not
   consistency (e.g. "17 teams" here vs "40 teams" there), (b) plausibility vs. the bank's own numbers.
   Anything not already GROUNDED stays ❓ for the candidate's sign-off. Never upgrade a private claim to ✅ on a guess.
 
-== AXIS C — FABRICATION LOG (hard block) ==
+== AXIS C — FABRICATION LOG (always flagged) ==
 Check every line against CLAUDE.md `## Fabrication log`. Any match → BANNED ⛔, regardless of axes A/B.
 This includes Core Competencies labels and Technical Skills entries (e.g. "Web" as automation scope,
 "DORA metrics", "deployment frequency", "internal developer platform", "Staff Engineer", "Spring Boot").
@@ -71,19 +70,22 @@ This includes Core Competencies labels and Technical Skills entries (e.g. "Web" 
   skeleton; do not restate it here. Report the actual count.
 - LENGTH, measured not attested: count body words and bullet/paragraph lines, and compare against
   the skeleton's length budget. Over budget → OVER-BUDGET ⚠️. Report the actual counts.
-- HEADLINE: matches the locked lane headline in CLAUDE.md `## Résumé identity lock` — locked title
-  intact, descriptors drawn from the approved vocabulary. A never-held title in the headline is a
-  ⛔ under Axis C. Note that this lock is advisory and reported, per the identity-lock section.
+- HEADLINE + DH TITLE: per CLAUDE.md `## Résumé identity`. The headline title must be in Yash's
+  own family (a JD title pasted in is a ⚠️ fix); its descriptors must name work in the bank. The Delivery Hero title must pass
+  that section's test (same job, same level, not visibly different): failing it is ⛔.
+- CONTACT LINE + COMPETENCY LABELS: per the skeleton (work authorisation on the contact line;
+  competency label length). A headline outside
+  the engineering-management family gets one NOTE quoting the lane data, never a ⛔.
 
 == AXIS E — PLAIN LANGUAGE (measured, not judged) ==
 Run `node plain.js <the resume file>` and report the score, verdict and every flagged line. Do NOT
 eyeball this — an LLM grades its own prose generously, which is exactly why the check is a regex scan.
-The rules it enforces are in CLAUDE.md `### Plain-language rule — RÉSUMÉS`: stacked em-dashes, tacked-on
-benefit clauses, rule-of-three "-ing" lists, puff phrases, over-long sentences, uniform bullet rhythm.
-- Score ≥ 80 → PLAIN, fine.
-- Score < 80 → FUSSY ⚠️: give a concrete plainer rewrite for each flagged line, preserving every fact,
+The rules it enforces are in CLAUDE.md `### Plain-language rule — RÉSUMÉS` and `### Simplicity rule`;
+the ship criteria are in `resumes/resume-skeleton.md` → Bullet length.
+- Score ≥ 80 (verdict PLAIN) and no WORDY / TWO_SENTENCES in Professional Experience → fine.
+- Otherwise FUSSY ⚠️: give a concrete plainer rewrite for each flagged line, preserving every fact,
   number and standard industry term. A plainer line must never drop a keyword — if a rewrite would, keep
-  the term and re-shape the sentence around it. This axis alone does NOT set the verdict to BLOCK (it is
+  the term and re-shape the sentence around it. This axis alone does NOT set the verdict to CHECK (it is
   a style defect, not an honesty defect), but the rewrites belong in the fix list.
 
 == OUTPUT ==
@@ -92,16 +94,16 @@ benefit clauses, rule-of-three "-ing" lists, puff phrases, over-long sentences, 
 2. Format check result (sections, density, measured length with numbers) and the plain-language score
    with its flagged lines.
 3. VERDICT:
-   - BLOCK if any ⛔ banned, any ⚠️ recombination/implausible/over-budget, or any unresolved ❓.
+   - CHECK if any ⛔ banned, any ⚠️ recombination/implausible/over-budget, or any unresolved ❓.
    - PASS only if zero of the above.
-4. If BLOCK: for each flagged line give the FIX — ⛔/⚠️ get a concrete corrected line (or "remove");
+4. If CHECK: for each flagged line give the FIX — ⛔/⚠️ get a concrete corrected line (or "remove");
    ❓ get the one question the candidate must answer to clear it ("Confirm: is X true?"). Group the ❓ questions
    together at the end as a short checklist so the candidate can resolve them in one pass.
 5. Write the full report to `output/<slug>/verify-<YYYYMMDD>.md`.
 6. As the VERY LAST line, emit exactly (the UI parses it):
-   `<!-- VERIFY: verdict=<PASS|BLOCK> banned=<n> implausible=<n> unverified=<n> over_budget=<yes|no> plain=<int 0-100> -->`
+   `<!-- VERIFY: verdict=<PASS|CHECK> banned=<n> implausible=<n> unverified=<n> over_budget=<yes|no> plain=<int 0-100> -->`
 
-SCOPE OF "BLOCK" — per `### THE TOOL NEVER BLOCKS AN APPLICATION` in CLAUDE.md. BLOCK is a verdict
+SCOPE OF "CHECK" — per `### THE TOOL NEVER BLOCKS AN APPLICATION` in CLAUDE.md. CHECK is a verdict
 on specific LINES, never on the application. It means "these lines are not defensible in the room —
 here they are and here are the fixes". It never withholds the résumé, never suppresses the
 downloads, and never tells Yash not to apply. Honesty is the one thing this gate holds firm on,

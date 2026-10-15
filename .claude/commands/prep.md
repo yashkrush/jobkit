@@ -33,7 +33,7 @@ SENIOR-TRACK — if the input contains `--senior`: prep for a senior role. Groun
 bucket** in CLAUDE.md ("## Senior-track framing") and `resumes/resume-senior-em.md` (not the standard base).
 Lead the opener, stories and altitude on **managing managers** — developing the 2 EMs, org design,
 calibration across teams, cross-team org leadership, strategy — with the ~22-engineer org as the scope
-headline. Keep the DH title as-is (surface scope, never a title Yash doesn't hold). Everything else in this
+headline. Use the DH title exactly as it appears on the submitted CV (surface scope, never a senior title). Everything else in this
 pack still applies; the manager-of-managers tenure is not hardcoded — phrase it flexibly to the round.
 
 TPM LANE — if the input contains `--tpm`: prep for a **(Senior) Technical Program Manager / Program Manager**
@@ -49,7 +49,7 @@ TPM loop actually tests:
 - **Metrics / status** — how you track programme health and report it (tie to QMI / CFR / Regression-Reliability as
   data-driven delivery visibility, framed as programme signals, not "quality").
 Lead the opener and stories on programme delivery, cross-team coordination, and stakeholder work; hold quality/technical
-detail as backup depth. People-management is a PLUS to mention, not the headline. The "not hands-on coder / system-design
+detail as backup depth. People-management is a PLUS to mention, not the headline. The "no live coding / system-design
 beginner" gap is far less exposed here — but if the loop has a genuine technical/system round, still handle it honestly
 per the altitude guard.
 **STUDY COMPONENT (important — this lane is newer ground for Yash):** in §5b, include a plain-language primer of the
@@ -63,13 +63,22 @@ equivalent in my own way." This §5b is fuller than usual for the TPM lane; give
 ## Same-page contract — Check Match, Tailor and Prep are ONE decision
 Prep the SAME lane Check Match routed this JD to and Tailor built in — don't silently re-lane it. The
 §5 gaps are the SAME honest gaps Check Match named and Tailor reported (never wore): build the scripts
-around exactly those, don't invent new ones or paper over the real one. If the role is a hands-on /
-builder-EM archetype (Check Match would have flagged it MAYBE-eyes-open), treat the hands-on gap as the
-central risk of the round — an honest "here's what hands-on means for me, here's where my value is" script
-at leadership altitude, never a claim of daily coding. One decision, three tabs; keep them aligned.
+around exactly those, don't invent new ones or paper over the real one. If the JD asks for hands-on,
+use only what the bank says (hands-on where needed, e.g. QMI and CFR; not production code), per
+CLAUDE.md `## Résumé identity` → Hands-on. Don't invent a hands-on story. Where the round needs more,
+list the plain question for Yash at the top of the pack (e.g. "Did you set up X yourself?") as a
+statement to prepare, not a script. The firm gap is live coding; never claim hand-coding. One decision, three tabs; keep them aligned.
+
+## Build rules — follow, don't restate
+Every pack is built under CLAUDE.md `### Prep-pack construction rules` (inside `## Interview lessons`).
+Read that section and apply it; it owns the policy on grounding in the SUBMITTED résumé, marking
+off-CV facts, the senior-track wall, cover-letter drafts, and no-diagnoses. Do not paste its content
+here — it is the single source and it moves.
 
 ## Read everything first — answer only from this
-- CLAUDE.md — positioning, achievement bank, voice, comp/notice/leverage rules.
+- CLAUDE.md — positioning, achievement bank, voice, comp/notice/leverage rules. For "why are you
+  leaving Delivery Hero", follow `## Status / framing` — the answer is pull-led and the acquisition is
+  a fallback, not the opening line.
 - CLAUDE.md `## Interview lessons` — cross-company learnings from PAST interview outcomes/feedback.
   Apply EVERY one of these this round (they are not specific to one company): bake them into the
   delivery notes on the opener (§1), the STAR-story coaching (§3), and the mental model (§8). E.g. a
@@ -78,10 +87,12 @@ at leadership altitude, never a claim of daily coding. One decision, three tabs;
   repeat the mistake that generated the lesson.
 - `story-bank.md` (repo root) — **the concrete material those lessons call for.** The Interview
   lessons say WHAT goes wrong; the story bank holds WHAT TO SAY INSTEAD: the org-structure answer
-  (5 direct reports incl. 2 EMs, ~22 engineers, the owned-vs-influence split), the people-led
+  (senior rounds: 2 EMs + 3 platform leads, ~22 engineers; normal rounds: "a team of 6 mid and senior
+  engineers" per CLAUDE.md `## Résumé identity` → Direct reports; and the owned-vs-influence split), the people-led
   specifics, and the cross-team initiative stories rehearsed as PRIMARY material. Draw §3's stories
   from here first, then fill gaps from the achievement bank. Do not re-derive a story from scratch
-  when the bank already has it rehearsed.
+  when the bank already has it rehearsed. **But story-bank.md §1's org structure is senior-track material** — see the
+  senior-track wall in `### Prep-pack construction rules` before using it in any round.
 - companies/<name>.md — stage, contacts, prior rounds, JD snapshot, anything learned.
 - The full job description if saved at output/<name>/jd-*.md — this is the primary source for the
   §5 JD-vs-CV gap diff. Prefer it over the truncated snapshot in the company file.
@@ -91,7 +102,9 @@ at leadership altitude, never a claim of daily coding. One decision, three tabs;
   was submitted yet, fall back to the matching base resume in resumes/ (EM or QA per role lean).
 - The cover letter if one exists — look in output/<name>/ for any file whose name contains "cover"
   (case-insensitive, any extension) and read it. My "why this company" answer must match the reason
-  I already gave there.
+  I already gave there. **It is a generated DRAFT, not necessarily what I sent** — I edit before
+  submitting, and JobKit does not capture the sent version. Never state what the sent letter
+  contains; say "the draft led on X". Per `### Prep-pack construction rules`.
 - Prior prep docs for THIS company at output/<name>/prep-*.md. Be round-aware: from a DIFFERENT
   round reuse only durable stuff (company facts, my frame, gaps, learnings) — never carry another
   round's question-and-answer set into this one. From the SAME round type, go deeper, don't repeat.
@@ -107,7 +120,9 @@ Don't prep question types that won't come up in this round.
 
 ## The sections — scale each to the round (keep them tight; a recruiter round trims hard)
 
-**0. How to use this pack** — a short tiered reading plan by time available (e.g. "2 hours: read
+**0. How to use this pack** — lead with the "how to use this without it using you" note required by
+`### Prep-pack construction rules`: which section is a script (the opener only), which are ingredients,
+and the tell that I'm steering rather than answering. Then a short tiered reading plan by time available (e.g. "2 hours: read
 sections X, Y, Z and say the stories aloud · +1 hour: add the gap section · morning of: re-read the
 opener and cheat sheet"). Then one line: the single mental model for this interview.
 
@@ -115,19 +130,22 @@ opener and cheat sheet"). Then one line: the single mental model for this interv
 responsibilities in the JD. Follow with "why this works" (which JD points it hits) and 3–4 delivery
 notes (what to emphasise, what to leave for them to ask). This is the one thing to half-memorise.
 
-**2. The frame** — who I am for THIS role in one line; the anchor sentence I return to; one
-memorable line I can land if it fits; my superpower vs my one risk for this specific role.
+**2. The frame** — who I am for THIS role in one plain line, taken from the submitted CV's headline
+and profile. Nothing more.
 
-**3. STAR stories to have ready** — pick the 4–6 from the achievement bank that fit this role (only the
-true and relevant ones; favour the candidate's signature, high-impact achievements). Write each one FULLY: **Prompt fits** (which questions it answers) ·
-**Situation** · **Task** · **Action** (concrete, with the real tools/metrics) · **Result** (numbers)
-· **What I'd do differently** · **Why it works for this company**. Lead with the strongest. These
-recombine to cover most behavioural questions.
+**3. Stories to have ready** — 3 for a recruiter round, 4 for others. **Each story is one bullet from
+the SUBMITTED CV**, told in three short beats: **what it was** (one line) · **what I did** (two or
+three lines) · **the result** (the CV's own number, word for word). Then one line: which questions it
+answers. Use only facts in the CV, the achievement bank or `story-bank.md`, at the level written
+there. **Don't invent** context, obstacles, dialogue, lessons learned or "what I'd do differently";
+if a story needs a detail that isn't recorded, write `[Yash: add the real detail]` instead of
+filling it in. Lead with the strongest.
 
 **4. Likely questions — only the ones that realistically come up in THIS round** (~6–8 for a recruiter
 screen, more for a hiring-manager round) — cluster by theme (e.g. strategy/vision,
 technical depth, leadership, domain, logistics, and a "why this company / why now" wildcard). For
-each: the question, a 1–3 line answer in my voice, and which STAR story to anchor on. Cover every
+each: the question, a 1–2 line answer in my voice that points to one CV line or one story, and nothing
+the CV doesn't say. Cover every
 question type that realistically comes up in THIS round.
 
 **5. Gaps / risks — deep-dive each** — derive the REAL gaps by diffing the JD against my SUBMITTED
@@ -139,7 +157,7 @@ understand it, give an honest framing script as a quote block, and a "what to re
 (≤1 hour)" list of specific things to skim so I don't look ignorant. Never fabricate to fill a gap —
 name it and bridge it honestly. If no JD text is available (not in companies/<name>.md or anywhere),
 say so explicitly at the top of this section and flag that the gap analysis is inferred, not a true
-JD-vs-CV diff — then ask for the JD. Comp: anchor to the candidate's target/market range as stated in
+JD-vs-CV diff — and state where to add the JD (companies/<name>.md). Comp: anchor to the candidate's target/market range as stated in
 CLAUDE.md (or "competitive for the market" if none given). Follow CLAUDE.md's rules on notice period and
 employment status — never raise notice unless asked directly if CLAUDE.md says so.
 
@@ -161,8 +179,8 @@ what it signals or what I learn from the answer.
 (story keywords + the questions to ask + one "why them" line + comp anchor). One line on discreetly
 using a live process elsewhere as leverage if it helps (never name it).
 
-**8. The mental model for the hour** — the 1–2 things they're really assessing, my superpower, my
-one risk, and a final confidence line.
+**8. The mental model for the hour** — the 1–2 things they're really assessing, in one or two plain
+lines.
 
 ## Technical / system-design mode (use INSTEAD of sections 3–5 when the round is technical)
 Teach me to think, not memorise. State the pattern up front and use it for every component:
@@ -185,3 +203,9 @@ Teach me to think, not memorise. State the pattern up front and use it for every
 
 End on the mental-model / closer section. Do NOT ask what to do next or offer to expand — this is
 the finished pack the server saves for me to download.
+
+**OUTPUT CONTRACT — the pack IS the response.** Print the whole pack as the reply text. The server
+saves stdout verbatim to `output/<company>/prep-<round-slug>-<date>.md`, so a summary in the reply
+becomes the saved pack and the real one is lost. If you also write the pack to a file, never write it
+to that filename — the server's save will overwrite it. (Set 2026-09-22 after a mobile.de pack was
+clobbered this way.)

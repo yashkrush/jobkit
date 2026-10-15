@@ -9,8 +9,8 @@ CLAUDE.md is the source of truth for every rule below. Read it and follow the na
 this file tells you the STEPS and the OUTPUT CONTRACT, not the policy.
 - `## Achievement bank` + `## Snapshot` — the only facts you may use.
 - `## Fabrication log` — hard bans. Never use a flagged claim, however well it fits the JD.
-- `## Résumé identity lock` — the headline, the locked title, the descriptor vocabulary, the
-  profile word cap, and the locked constants (13 years, the DH title, "working towards B1").
+- `## Résumé identity` — headline, DH title names, direct-reports and hands-on framing, the
+  constants (13 years, German "B1"). Format numbers live in the skeleton.
 - `## Tailoring lessons` — framing rules learned from resumes actually submitted. Apply them.
   They never override the Fabrication log or the Honesty rules.
 - `## Positioning`, `## Voice rules`, `## Honesty rules`, `## Status / framing`.
@@ -19,7 +19,7 @@ this file tells you the STEPS and the OUTPUT CONTRACT, not the policy.
   a résumé. If asked to build, build; state risk in one line and hand over the files.
 
 Also read:
-- `resumes/resume-skeleton.md` — the locked structure and **the single source for all numbers**
+- `resumes/resume-skeleton.md` — the skeleton structure and **the single source for all numbers**
   (section order, bullet density per role, length budget). Never restate those numbers from memory.
 - The base résumé for the lane (see LANE below) — these are **markdown** files in `resumes/`.
 - `companies/<slug>.md` if it exists — especially `## Resumes sent`.
@@ -27,7 +27,7 @@ Also read:
 Arguments: JD text or URL, optionally `--cover-letter`, `--research`, `--senior`, `--tpm`.
 $ARGUMENTS
 
-## LANE — pick the base résumé, then keep the headline locked to it
+## LANE — pick the base résumé
 Route by SCOPE, not literal title, per CLAUDE.md. If `/tailor-analyse` already routed this JD,
 build in THAT lane — Check Match, Tailor and Prep are ONE decision.
 
@@ -42,9 +42,11 @@ build in THAT lane — Check Match, Tailor and Prep are ONE decision.
 If a flag is ABSENT but the JD clearly reads that way, add ONE line at the top of STEP 8
 suggesting a re-run with that profile. A suggestion only — never switch lanes on your own.
 
-**HEADLINE IS NOT A TAILORING SURFACE.** Take the locked headline for the lane verbatim from
-`## Résumé identity lock`. The only tunable part is the three descriptors after the em-dash, and
-only from that section's approved vocabulary. Never lead with a title Yash has not held.
+**HEADLINE AND FIT.** Follow `## Résumé identity` in CLAUDE.md: the headline title stays in Yash's
+own family and the JD fit goes in the descriptors (never visibly the JD's title). The CV should read
+as a fit for any role whose work Yash can do; framing is free, facts are not. Pick the
+direct-reports framing (normal vs senior). Hands-on stays implicit; if the JD needs hands-on detail
+the bank lacks, add a plain-words line to STEP 8 asking Yash to supply it via known facts.
 
 ## KNOWN FACTS — user-supplied trusted input
 If $ARGUMENTS contains a block delimited by `<<<KNOWN_FACTS` and `KNOWN_FACTS` (following a
@@ -64,9 +66,9 @@ unsourced, and the next run doesn't know it either. In the SAME run, before buil
 4. Say so in STEP 8, one line: which facts were banked, so he knows they are permanent.
 
 ## HARD RULES (breaking one is a failure, not a near-miss)
-1. **TITLE LOCK.** Job titles in PROFESSIONAL EXPERIENCE are fixed facts — use each exactly as
-   written in CLAUDE.md. The Delivery Hero title is never adjustable. (Older titles: see
-   `## Apply / skip filter` → "Older job titles are adjustable".)
+1. **SAME JOB, NEVER A DIFFERENT JOB.** The Delivery Hero title may be any name of the same role
+   listed in `## Résumé identity` (pick the one closest to the JD's wording), but never a different
+   role. Older titles: see `## Apply / skip filter` → "Older job titles are adjustable".
 2. **NO RELABELLING.** Describe each achievement as what it actually is. If the JD wants X and the
    bank says Y, say Y. Renaming Y into X is fabrication.
 3. **NO UMBRELLA FROM A PART.** Name the piece the bank supports, never the umbrella.
@@ -86,7 +88,7 @@ RESOLVE URL: if the JD argument is a URL, fetch the page and extract the full jo
 text, and use that as THE JD throughout. If the fetch fails, stop and say so plainly — never
 proceed with a bare URL string as the JD.
 Extract: role title, company name and slug (lowercase-hyphens), role lean, seniority, location,
-any language requirement, 8–10 must-have keywords, 3–4 nice-to-haves. Note today's date (YYYYMMDD).
+any language requirement, the must-have keywords and the nice-to-haves (the screen gate measures coverage; don't fix a count here). Note today's date (YYYYMMDD).
 
 ## STEP 2 — RESEARCH (only if `--research`)
 Web search "[company] engineering culture [year]" and "[company] tech blog". Note 2–3 concrete
@@ -107,8 +109,12 @@ The résumé is read by an ATS and skimmed by a human in ~6 seconds.
 - Map each to the strongest genuine match in the bank. Name the specific evidence.
 - A top-3 must-have with no genuine match is a gap (report it; never invent emphasis for it).
 - Plan the TOP THIRD to carry the relevance: the headline descriptors, the profile's first
-  sentence, and the first 4–5 core competencies. Someone reading only that should think "fits".
-Write these 3–5 lines, then draft.
+  sentence, and the first few core competencies. Someone reading only that should think "fits".
+- **RECRUITER CHECKLIST.** Follow `## Screening checklist` in CLAUDE.md. List each hard requirement
+  in the JD's own words (years in engineering, years leading people, team size, scope, domain,
+  stack, language, location/authorisation) and, next to it, the exact line that will tick it in the
+  top half of page 1, or `GAP`. Every requirement with a real answer is answered in the JD's own unit.
+Write these lines, then draft.
 
 ## STEP 5 — DRAFT
 Write the complete résumé following `resumes/resume-skeleton.md` — section order, bullet density
@@ -129,6 +135,13 @@ and length budget all come from that file. Lead with the STEP 4 emphasis.
 sentence SHAPE, not vocabulary — never drop a real term to sound plainer, and never keep a fancy
 sentence to hold a term.
 
+**SIMPLICITY RULE — the first thing a reader notices.** Follow `### Simplicity rule — one fact per
+line` in CLAUDE.md, with the bullet-length figures from `resumes/resume-skeleton.md`. Write each
+bullet as one short line a recruiter reads in two seconds. When a bank fact comes with tooling or
+an explanation, keep the fact and its number in the bullet and move the tool names to Technical
+Skills, so the keywords stay on the page. Do NOT copy the base résumé's bullet wording if it breaks
+this rule; restate the fact shorter.
+
 **BANK COVERAGE.** Before finalising, scan the WHOLE achievement bank and include every item
 genuinely relevant to this JD. Do not silently drop a relevant achievement to save space — if the
 length budget forces a cut, name exactly what was cut and why in STEP 8.
@@ -138,14 +151,18 @@ Do NOT print the résumé in your response prose. It is saved to file and read b
 ## STEP 6 — MEASURE, THEN SAVE
 1. Save the résumé to `output/resume-<slug>-<YYYYMMDD>.md`.
 2. Run `node plain.js output/resume-<slug>-<YYYYMMDD>.md`. Rewrite every flagged line until the
-   score is ≥ 80 (verdict PLAIN). Rewrite — never delete a fact or a standard term to raise the
-   score. Report the before/after score.
+   score is ≥ 80 (verdict PLAIN) AND no experience bullet carries a WORDY or TWO_SENTENCES flag
+   (split long bullets rather than cramming). Rewrite — never delete a fact or a standard term to
+   raise the score; move a term to Technical Skills if it no longer fits the line. Report the
+   before/after score.
 3. Quantification check (flag current-role bullets with no metric; add one from the bank if
    available), action-verb check (rewrite "responsible for / worked on / helped / assisted /
    involved in / supported"), and the length budget from the skeleton. Report each.
-4. HONESTY SELF-AUDIT — report PASS/FAIL on each: (a) every experience title matches CLAUDE.md;
+4. HONESTY SELF-AUDIT — report PASS/FAIL on each: (a) the DH title passes the `## Résumé identity` test and older titles follow `## Apply / skip filter`;
    (b) every claim traces to a bank / base-CV / known-facts line; (c) nothing relabelled;
-   (d) no unbackable JD phrase borrowed; (e) nothing from the gap list worn as if met.
+   (d) no unbackable JD phrase borrowed; (e) nothing from the gap list worn as if met; (f) every line
+   passes the interview test in `## Screening checklist` rule 4: Yash can talk to it for five minutes
+   at the level written. Cut any line that fails, even if it wins a screening tick.
    Fix before saving. This is a self-check, not a gate — the real gates run independently.
 5. Save the FULL resolved JD text (fetched text if the input was a URL; pasted text otherwise —
    never a bare URL string) to `output/<slug>/jd-<YYYYMMDD>.md` with the header
@@ -175,8 +192,8 @@ present in a standard term, ideally in the top third, and nothing violates the F
   "filename": "resume-<slug>-<YYYYMMDD>",
   "sections": {
     "name": "<candidate name, with degrees, from CLAUDE.md>",
-    "contact": "<full contact line from CLAUDE.md>",
-    "title": "<locked lane headline, descriptors tuned>",
+    "contact": "<full contact line, ending in German Permanent Resident — per resumes/resume-skeleton.md>",
+    "title": "<headline tuned to the JD, per ## Résumé identity>",
     "profile": "<profile paragraph as a single string>",
     "competencies": ["<label>", "<label>"],
     "experience": [
@@ -207,16 +224,33 @@ Then, best effort:
 -->
 
 ## STEP 8 — GAPS AND NOTES
-List JD requirements not clearly met — honest, not encouraging. Flag explicitly if the JD requires
+Print the RECRUITER CHECKLIST from STEP 4 as a short table: requirement → ticked by (quote the line)
+or GAP. Then list JD requirements not clearly met — honest, not encouraging. Flag explicitly if the JD requires
 a language proficiency Yash lacks, stating his real level per CLAUDE.md.
-Add, where they apply: the one-line lane suggestion (LANE above), the banked known-facts line
+Add, where they apply: the one-line lane suggestion (LANE above), any plain-words request for facts
+only Yash can confirm (`## Résumé identity` → Hands-on), the banked known-facts line
 (KNOWN FACTS step 4), and anything the length budget forced you to cut.
 
+**KNOW WHAT'S ON THE PAGE.** End STEP 8 with a short list: every line whose wording differs from the
+achievement bank or base résumé (a new framing, a mirrored JD term, a changed title), each with the
+plain fact it rests on, e.g. "'Engineering Delivery Manager' at DH = your EM role, renamed for this JD"
+or "'Feature A/B tests' = you work with Product on experiments; you didn't design the framework".
+Yash reads this before sending so nothing on the page surprises him in the room. `/prep` uses the
+same CV, so the two never disagree.
+
 ## STEP 9 — COVER LETTER (only if `--cover-letter`)
-~180 words in Yash's voice, per `## Voice rules` and the don't-sound-AI-written rule. One specific
+Length and voice per `## Voice rules` and the don't-sound-AI-written rule. One specific
 true reason for this company. Follow `## Status / framing` on employment status and notice period.
 Save to `output/cover-letter-<slug>-<YYYYMMDD>.md` and emit:
 `<!-- SAVED_CL: output/cover-letter-<slug>-<YYYYMMDD>.md -->`
+
+## STEP 10 — OUTREACH MESSAGE (always)
+Per `## Screening checklist` → "Outside the CV". Write one message (InMail length per `## Voice rules`) to the hiring
+manager (or the recruiter if the JD names one), per `## Voice rules`: one line on the role, the one
+or two facts that tick the JD's top requirements, and a plain ask for a short conversation. No
+pronoun rules apply here (it is a message, not a résumé), but the honesty rules do. Name who to
+send it to: the JD's named person, else "the hiring manager for <team> (find on LinkedIn)". Save to
+`output/<slug>/outreach-<YYYYMMDD>.md` and print it in the response so it can be copied.
 
 ---
 This runs in a non-chat UI — output is displayed, not replied to. End on the deliverables and the

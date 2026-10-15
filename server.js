@@ -8,6 +8,7 @@ const mammoth = require('mammoth');
 const { PDFParse } = require('pdf-parse');
 const { marked } = require('marked');
 const { computeAtsScore } = require('./ats');
+const { stripDashes } = require('./plain');   // no em/en dashes on anything rendered or saved (2026-10-13)
 const discover = require('./discover');
 
 const app = express();
@@ -28,7 +29,10 @@ function runClaude(prompt, timeoutMs = 480000) {
     let out = '', err = '';
     const timer = setTimeout(() => {
       proc.kill();
-      reject(new Error('claude timed out after ' + (timeoutMs / 1000) + 's'));
+      // Carry what it printed so far — files it already saved are recoverable by the caller.
+      const e = new Error('claude timed out after ' + (timeoutMs / 1000) + 's');
+      e.timedOut = true; e.partial = out;
+      reject(e);
     }, timeoutMs);
     proc.stdout.on('data', d => out += d.toString());
     proc.stderr.on('data', d => err += d.toString());
@@ -55,8 +59,12 @@ function parseGateMarker(out, kind) {
 
 // Run the two quality gates as INDEPENDENT passes — separate `claude -p` invocations, NOT the same
 // call that wrote the draft, so the verifier never grades its own writing (the whole point). They run
-// in parallel (independent of each other) and may apply their own safe fixes to the saved md. Non-fatal:
+// in parallel (independent of each other) and REPORT ONLY — they never edit the saved md. Non-fatal:
 // a gate failure or timeout never blocks returning the resume.
+// Gate results for runs whose gates are still going in the background, keyed by slug.
+// The Tailor tab polls GET /api/gates/:slug. In memory only — a restart just means "no result".
+const gateRuns = new Map();
+
 async function runResumeGates(slug) {
   const [screenR, verifyR] = await Promise.allSettled([
     runClaude('/tailor-screen ' + slug),
@@ -392,7 +400,7 @@ function mdInlineRuns(nodes, opts = {}) {
 function mdToDocx(md) {
   const NAVY = '1F3A5F';
   const paras = [];
-  marked.lexer(md || '').forEach(tok => {
+  marked.lexer(stripDashes(md || '')).forEach(tok => {
     if (tok.type === 'heading') {
       if (tok.depth === 1) paras.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 40 },
         children: mdInlineRuns(tok.tokens, { bold: true, size: 40, color: NAVY }) }));
@@ -426,13 +434,14 @@ function mdToDocx(md) {
 
 // HTML rendered straight from the markdown (same parser as the UI preview → identical content).
 function mdToHtml(md) {
-  const body = marked.parse(md || '', { async: false });
+  const body = marked.parse(stripDashes(md || ''), { async: false, breaks: true });
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Resume</title>
 <style>
 body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;line-height:1.45;max-width:820px;margin:28px auto;color:#1a1a1a;padding:0 22px}
 @media print{body{margin:0;max-width:100%}@page{size:A4;margin:15mm}}
 h1{font-size:20pt;color:#1F3A5F;text-align:center;margin:0 0 2px}
 h1 + p{text-align:center;color:#555;margin:0 0 2px}
+h1 + p + p{text-align:center;margin:0 0 4px}
 h2{font-size:11pt;color:#1F3A5F;text-transform:uppercase;letter-spacing:.5px;border-bottom:1.4px solid #1F3A5F;padding-bottom:2px;margin:16px 0 7px}
 h3{font-size:10.5pt;margin:11px 0 1px}
 em{color:#444}p{margin:4px 0}ul{margin:4px 0;padding-left:20px}li{margin:3px 0}a{color:#1F3A5F;text-decoration:none}
@@ -820,6 +829,9 @@ function closeCurrentApplication(content, stage, outcome) {
 // clearly schedule/hold an interview yields nothing, so a date is never guessed (e.g. a "follow-up
 // email 2026-06-06" line is not mistaken for an interview). → [{date:'YYYY-MM-DD', label}].
 const MON = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+// Wording that means an interview did NOT happen. A rejection email's "No interview took place"
+// passes every positive test below and put a phantom round on the calendar (parloa, 2026-09-03).
+const NO_INTERVIEW = /\b(?:no|never|without|not\s+an?)\s+(?:\w+\s+){0,2}(?:interview|round|call)\b|\binterviews?\s+(?:did\s+not|didn't|never)\b/i;
 function extractInterviewEvents(md) {
   const events = [];
   (md || '').split('\n').forEach(line => {
@@ -829,25 +841,55 @@ function extractInterviewEvents(md) {
     const text = t.replace(/^-\s*/, '');
     const isInterview = /\b(interview|round|call|talent talk|getting-to-know|panel|onsite|loop)\b/i.test(text);
     const context = /(confirm|book|invit|propos|schedul|complet|attend|\bheld\b|took place|on the proposed date)/i.test(text);
-    if (!isInterview || !context) return;
+    if (!isInterview || !context || NO_INTERVIEW.test(text)) return;
     const completion = /\b(completed|attended|held|took place|wrapped)\b/i.test(text);
 
     let y, mo, d, m;
     if ((m = /\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})\b/.exec(text))) {          // DD.MM.YYYY / DD.MM.YY
       d = +m[1]; mo = +m[2] - 1; y = m[3].length === 2 ? 2000 + +m[3] : +m[3];
-    } else if ((m = /\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{4})\b/i.exec(text))) {
-      d = +m[1]; mo = MON[m[2].toLowerCase()]; y = +m[3];                  // "D Mon YYYY"
+    } else if ((m = /\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s*(\d{4})?\b/i.exec(text))) {
+      d = +m[1]; mo = MON[m[2].toLowerCase()];                            // "D Mon [YYYY]"
+      if (m[3]) y = +m[3];
+      else if (isoBullet) {
+        // "Wednesday 23 September" with no year: take it from the bullet's own log date. A date
+        // that lands far in the past means the year rolled over (logged in Dec, interview in Jan).
+        y = +isoBullet[1];
+        const logged = Date.UTC(+isoBullet[1], +isoBullet[2] - 1, +isoBullet[3]);
+        if (Date.UTC(y, mo, d) < logged - 183 * 86400000) y += 1;
+      } else return;
     } else if (completion && isoBullet) {                                 // completed, date only in the log-date
-      y = +isoBullet[1]; mo = +isoBullet[2] - 1; d = +isoBullet[3];
+      y = +isoBullet[1]; mo = +isoBullet[2] - 1; d = +isoBullet[3]; m = null;
     } else return;                                                        // no trustworthy interview date → skip
     if (mo == null || mo < 0 || mo > 11 || d < 1 || d > 31) return;
 
-    const r = /\b(\d(?:st|nd|rd|th))\b/i.exec(text);
+    // Is this date only a PROPOSAL? Judged from the words right before the date ("Proposed slot:
+    // Mon 7 Sep"), not from the bullet as a whole — the same bullet usually also says a
+    // confirmation email will follow, so a bullet-wide /confirm/ test reads a proposal as firm.
+    const proposed = m ? /(propos|suggest|offer)/i.test(text.slice(Math.max(0, m.index - 40), m.index)) : false;
+
+    // Round number: the LAST ordinal that qualifies an interview/round/call/session. A log bullet
+    // reads "advanced past the 1st … invited to a 2nd, slot <date>", so the ordinal belonging to
+    // the date is the last one — taking the first labelled checkmk's 2nd round as its 1st.
+    const ords = [...text.matchAll(/\b(\d(?:st|nd|rd|th))\b[\s\-]*(?:\([^)]*\)\s*)?(?:interview|round|call|session)/gi)];
+    const r = ords.length ? ords[ords.length - 1][1] : null;
     const date = y + '-' + String(mo + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-    events.push({ date, label: r ? (r[1].toLowerCase() + ' interview') : 'interview' });
+    events.push({ date, proposed, label: r ? (r.toLowerCase() + ' interview') : 'interview' });
   });
+
+  // A proposed slot that was later moved is not a second interview. Drop a date that is ONLY ever
+  // proposed when a firm date for the same company sits within a week of it — that firm one is the
+  // same round, rescheduled. (freenow: "proposed Mon 7 Sep", then "confirmed Tue 8 Sep" — one
+  // interview, two chips.) A proposal nothing supersedes is kept: it is usually the round that ran.
+  const firmness = new Map();   // date → true once any bullet states it non-provisionally
+  events.forEach(e => firmness.set(e.date, (firmness.get(e.date) || false) || !e.proposed));
+  const firmTimes = [...firmness.entries()].filter(([, f]) => f).map(([dt]) => Date.parse(dt));
+  const WEEK = 7 * 86400000;
+  const kept = events.filter(e => firmness.get(e.date)
+    || !firmTimes.some(t => Math.abs(t - Date.parse(e.date)) <= WEEK));
+
   const seen = new Set();   // one event per calendar day per company
-  return events.filter(e => (seen.has(e.date) ? false : (seen.add(e.date), true)));
+  return kept.filter(e => (seen.has(e.date) ? false : (seen.add(e.date), true)))
+             .map(({ date, label }) => ({ date, label }));
 }
 
 function extractAppliedDate(md) {
@@ -875,6 +917,7 @@ app.get('/api/pipeline', async (req, res) => {
   try {
     const content = await fs.readFile(path.join(ROOT, 'pipeline.md'), 'utf8');
     const appliedDates = {};
+    const recordFields = {};      // { slug: {location, via} } — standard record fields for the CSV export
     const interviewEvents = {};   // { slug: [{date, label}] } — past interviews mined from company logs
     try {
       const dir = path.join(ROOT, 'companies');
@@ -885,12 +928,15 @@ app.get('/api/pipeline', async (req, res) => {
           const slug = f.replace(/\.md$/, '');
           const d = extractAppliedDate(md);
           if (d) appliedDates[slug] = d;
+          const loc = md.match(/^- Location:\s*(.+)$/m);
+          const via = md.match(/^- Applied via:\s*(.+)$/m);
+          if (loc || via) recordFields[slug] = { location: loc ? loc[1].trim() : '', via: via ? via[1].trim() : '' };
           const iev = extractInterviewEvents(md);
           if (iev.length) interviewEvents[slug] = iev;
         } catch (_) { /* skip unreadable company file */ }
       }
     } catch (_) { /* no companies dir → empty maps */ }
-    res.json({ content, appliedDates, interviewEvents });
+    res.json({ content, appliedDates, recordFields, interviewEvents });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1283,11 +1329,23 @@ app.post('/api/rebuild-resume', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/gates/:slug', (req, res) => {
+  res.json(gateRuns.get(req.params.slug) || { status: 'none' });
+});
+
 app.post('/api/run', async (req, res) => {
   try {
     const { prompt, jd } = req.body;
     if (!prompt) return res.status(400).json({ error: 'prompt required' });
-    const out = await runClaude(prompt);
+    // /tailor is long (reads the whole bank, measures and rewrites). 15 min ceiling; if it is hit,
+    // keep going with whatever was already saved instead of discarding a finished résumé.
+    let out, timedOut = false;
+    try { out = await runClaude(prompt, 15 * 60 * 1000); }
+    catch (e) {
+      if (!e.timedOut) throw e;
+      timedOut = true; out = e.partial || '';
+      console.error('[/api/run] tailor timed out — recovering saved files');
+    }
 
     console.log('[/api/run] raw out length:', out.length);
 
@@ -1300,7 +1358,7 @@ app.post('/api/run', async (req, res) => {
 
     console.log('[/api/run] jsonMatch:', !!jsonMatch, '| savedMatch:', savedMatch ? savedMatch[1] : null);
 
-    let resumeData = null, docxFile = null, htmlFile = null, resumePreview = null, mdContent = null, mdSrcName = null, gates = null;
+    let resumeData = null, docxFile = null, htmlFile = null, resumePreview = null, mdContent = null, mdSrcName = null, gates = null, gateSlug = null;
 
     if (jsonMatch) {
       try {
@@ -1325,7 +1383,7 @@ app.post('/api/run', async (req, res) => {
           const mdDest = path.join(ROOT, 'output', resumeData.slug,
             'resume-' + resumeData.slug + '-' + resumeData.date + '.md');
           try {
-            mdContent = await fs.readFile(mdSrc, 'utf8');
+            mdContent = stripDashes(await fs.readFile(mdSrc, 'utf8'));
             await fs.writeFile(mdDest, mdContent);
             await fs.unlink(mdSrc).catch(() => {});
             resumePreview = mdContent;
@@ -1387,7 +1445,7 @@ app.post('/api/run', async (req, res) => {
     if (!resumePreview) {
       try {
         const outDir = path.join(ROOT, 'output');
-        const cutoff = Date.now() - 10 * 60 * 1000;
+        const cutoff = Date.now() - 20 * 60 * 1000;
         const entries = await fs.readdir(outDir, { withFileTypes: true });
         const candidates = [];
         for (const e of entries) {
@@ -1419,7 +1477,7 @@ app.post('/api/run', async (req, res) => {
 
     // Build the downloadable DOCX/HTML from the resume markdown — one place, so the download
     // buttons appear whenever we recovered a resume, even when the RESUME_JSON marker was absent.
-    let finalMd = mdContent || resumePreview;
+    let finalMd = stripDashes(mdContent || resumePreview);
     if (finalMd && finalMd.trim()) {
       if (!docxFile) {
         // RESUME_JSON was absent — derive slug/date from the recovered md filename and
@@ -1435,18 +1493,21 @@ app.post('/api/run', async (req, res) => {
           if (!mdSrcName.includes('/')) await fs.unlink(path.join(ROOT, 'output', mdSrcName)).catch(() => {});
         }
       }
-      // INDEPENDENT QUALITY GATES — run BEFORE building the downloads so a gate's safe fixes land in
-      // the DOCX/HTML the user actually gets. Separate claude passes (see runResumeGates).
-      const gateSlug = (resumeData && resumeData.slug) || (docxFile ? docxFile.split('/')[0] : null);
-      if (gateSlug) {
-        try {
-          gates = await runResumeGates(gateSlug);
-          // a gate may have edited the saved md — re-read it so downloads + preview reflect the fixes
-          const mdPath = path.join(ROOT, 'output', docxFile.replace(/\.docx$/, '.md'));
-          const reread = await fs.readFile(mdPath, 'utf8').catch(() => null);
-          if (reread && reread.trim()) { finalMd = reread; resumePreview = reread; }
-          console.log('[/api/run] gates:', JSON.stringify(gates));
-        } catch (e) { console.error('[/api/run] gates error:', e.message); }
+      // INDEPENDENT QUALITY GATES — separate claude passes (see runResumeGates). They used to run
+      // here, BEFORE replying, which doubled the wait to 15+ minutes. Per "Split slow operations"
+      // in CLAUDE.md the résumé is returned now and the gates run in the background; when they
+      // finish, the downloads are rebuilt from the (possibly gate-fixed) markdown and the Tailor
+      // tab picks the result up from GET /api/gates/:slug.
+      gateSlug = (resumeData && resumeData.slug) || (docxFile ? docxFile.split('/')[0] : null);
+      if (gateSlug && docxFile) {
+        const dFile = docxFile, hFile = htmlFile;
+        gateRuns.set(gateSlug, { status: 'running', started: Date.now() });
+        runResumeGates(gateSlug).then(g => {
+          // Gates REPORT ONLY. They never edit the saved résumé and the downloads are never rebuilt
+          // behind Yash's back — the file he reviewed is the file he sends (2026-10-13).
+          gateRuns.set(gateSlug, { status: 'done', screen: g.screen, verify: g.verify });
+          console.log('[/api/run] gates (background):', JSON.stringify(g));
+        }).catch(e => gateRuns.set(gateSlug, { status: 'error', error: e.message }));
       }
       if (docxFile) {
         try {
@@ -1477,8 +1538,13 @@ app.post('/api/run', async (req, res) => {
 
     console.log('[/api/run] clean output length:', clean.length, '| docxFile:', docxFile);
 
-    // Deterministic ATS keyword-coverage score (JD vs the tailored resume text).
-    const ats = (jd && finalMd) ? computeAtsScore(jd, finalMd) : null;
+    // Deterministic ATS keyword-coverage score (JD vs the tailored resume text). When the input was
+    // a bare URL, score against the JD text the skill fetched and saved, not the URL string.
+    let jdText = jd;
+    if (/^https?:\/\/\S+$/.test((jd || '').trim()) && savedJD) {
+      jdText = await fs.readFile(path.join(ROOT, savedJD[1]), 'utf8').catch(() => jd);
+    }
+    const ats = (jdText && finalMd) ? computeAtsScore(jdText, finalMd) : null;
 
     res.json({
       output:         clean,
@@ -1492,6 +1558,8 @@ app.post('/api/run', async (req, res) => {
       ats,
       screen:         gates ? gates.screen : null,
       verify:         gates ? gates.verify : null,
+      gates_pending:  gateSlug && gateRuns.has(gateSlug) ? gateSlug : null,
+      timed_out:      timedOut,
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1673,9 +1741,9 @@ Produce THREE things:
 
 2. "framing_lessons": ${draftText ? 'Compare the draft against the submitted version. ' : ''}Infer GENERALISABLE tailoring rules from how the submitted resume is positioned relative to the JD${draftText ? ', and from what the user changed, cut, reordered or re-emphasised versus the draft' : ''}. Each lesson must be ONE concise, reusable imperative rule that would make the NEXT tailored resume more likely to clear screening — about positioning, emphasis, section ordering, what to cut, tone, or keyword coverage. Make them generalisable (e.g. "When a JD is QA-titled but the role is EM-scope, lead with engineering leadership and treat quality as a differentiator"), NOT a narration of this one resume, and NOT new facts. Never propose anything that conflicts with the Honesty rules / Fabrication log. If the submitted resume and the draft are essentially the same, return [].
 
-3. "corrections": facts in the SUBMITTED resume that CONTRADICT or UPDATE a fact already in the achievement bank — the source-of-truth resume now says something different from the bank (a different technology, a changed number, an updated tenure, a renamed tool). For each return an object {"old": "<the outdated fact, quoting the bank's wording as closely as possible>", "new": "<the corrected fact from the submitted resume>", "why": "<one short line>"}. These are NOT new facts and NOT rephrasings — only genuine disagreements where the bank is now out of date (e.g. bank says "Kafka" but the submitted resume says "SQS"; bank says "12+ years" but the resume says "13 years"). The submitted resume is USUALLY the source of truth — BUT NOT ALWAYS. If the submitted resume's differing value would REINTRODUCE something the Fabrication log / Honesty rules forbid (e.g. it writes German as "B1" when the rules say "working towards B1"; or a banned title/term), do NOT put it in "corrections" — the resume is the error there. Put it in "conflicts" instead. Return [] if none.
+3. "corrections": facts in the SUBMITTED resume that CONTRADICT or UPDATE a fact already in the achievement bank — the source-of-truth resume now says something different from the bank (a different technology, a changed number, an updated tenure, a renamed tool). For each return an object {"old": "<the outdated fact, quoting the bank's wording as closely as possible>", "new": "<the corrected fact from the submitted resume>", "why": "<one short line>"}. These are NOT new facts and NOT rephrasings — only genuine disagreements where the bank is now out of date (e.g. bank says "Kafka" but the submitted resume says "SQS"; bank says "12+ years" but the resume says "13 years"). The submitted resume is USUALLY the source of truth — BUT NOT ALWAYS. If the submitted resume's differing value would REINTRODUCE something the Fabrication log / Honesty rules forbid (e.g. it claims B2/C1 German when the rules say B1; or a banned title/term), do NOT put it in "corrections" — the resume is the error there. Put it in "conflicts" instead. Return [] if none.
 
-4. "conflicts": places where the SUBMITTED resume violates the Fabrication log / Honesty rules / a fixed fact (the resume is likely the mistake, not the bank). For each return an object {"in_resume": "<what the resume says>", "rule": "<the rule it breaks>", "why": "<one short line, e.g. 'you are not yet B1 — keep \\"working towards B1\\"'>"}. These must NEVER be auto-applied to the bank — they are warnings for the user to fix on the resume. Return [] if none.
+4. "conflicts": places where the SUBMITTED resume violates the Fabrication log / Honesty rules / a fixed fact (the resume is likely the mistake, not the bank). For each return an object {"in_resume": "<what the resume says>", "rule": "<the rule it breaks>", "why": "<one short line, e.g. 'German is B1 — never above it'>"}. These must NEVER be auto-applied to the bank — they are warnings for the user to fix on the resume. Return [] if none.
 
 Return raw JSON only, no markdown fences: {"new_bullets":[...],"framing_lessons":[...],"corrections":[...],"conflicts":[...]}`;
     const detConflicts = scanFabricationConflicts(submittedText); // deterministic, runs regardless of the LLM
@@ -2166,7 +2234,22 @@ app.post('/api/discover/dismiss', async (req, res) => {
     const { uid, undo } = req.body || {};
     const state = await discover.loadState();
     const r = (state.results || []).find(x => x.uid === uid);
-    if (r) r.dismissed = !undo;
+    // Hiding and shortlisting are opposite verdicts — a row must never sit in both buckets.
+    if (r) { r.dismissed = !undo; if (r.dismissed) r.starred = false; }
+    await discover.saveState(state);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Shortlist — the other half of triage. Dismiss says "never again"; this says "come back to
+// this one". Without it a fast pass over 90 postings has nowhere to put a maybe, so the pass
+// doesn't happen at all.
+app.post('/api/discover/star', async (req, res) => {
+  try {
+    const { uid, starred } = req.body || {};
+    const state = await discover.loadState();
+    const r = (state.results || []).find(x => x.uid === uid);
+    if (r) { r.starred = !!starred; if (r.starred) r.dismissed = false; }
     await discover.saveState(state);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }

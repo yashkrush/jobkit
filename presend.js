@@ -33,7 +33,7 @@ function wordBudget() {
     const m = sk.match(/≤\s*~?(\d{3,4})\s*body words/i);
     if (m) return parseInt(m[1], 10);
   } catch {}
-  return 855;
+  return 720;   // fallback only — the skeleton is the source
 }
 
 // Count the SAME WAY the budget was calibrated, or the comparison is meaningless.
@@ -113,7 +113,7 @@ function check(slug) {
 
   // 4. Length.
   const budget = wordBudget(), words = bodyWords(md);
-  if (words > budget) out.issues.push(['LENGTH', `${words} body words, budget ${budget}. Will not hold 2 pages.`]);
+  if (words > budget) out.issues.push(['LENGTH', `${words} body words, budget ${budget}. Too dense to skim — cut words, not facts.`]);
   else out.ok.push(`Length ${words}/${budget}`);
 
   // 5. Plain language.

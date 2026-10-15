@@ -32,10 +32,17 @@
 const fs = require('fs');
 const path = require('path');
 
-// --- Locked identity (mirrors "## Résumé identity lock" in CLAUDE.md) ----------------
+// --- Locked identity (mirrors "## Résumé identity" in CLAUDE.md) ----------------
 
-// The headline title before the em-dash. Nothing else may lead a resume.
-const ALLOWED_TITLES = ['Engineering Manager', 'Quality Engineering Manager'];
+// Names of the role Yash actually holds. A recruiter reads these as one job (Yash, 2026-10-10:
+// "Engineering Manager, Software Engineering Manager & Manager, Software Engineering is the
+// same thing"), so any of them may lead a résumé or title the Delivery Hero role.
+const ALLOWED_TITLES = ['Engineering Manager', 'Software Engineering Manager',
+  'Manager, Software Engineering', 'Quality Engineering Manager', 'Engineering Manager, Quality'];
+// DH title test (Yash, 2026-10-10): adjust freely, but not visibly — keep "engineering" + "manager"
+// and the level. "Engineering Project Manager" passes; "Senior EM", "Director", "Program Manager" don't.
+const DH_TITLE_OK = t => /engineering/.test(t) && /manager/.test(t) &&
+  !/\b(senior|sr\.?|director|head|vp|vice|principal|staff|lead)\b/.test(t);
 
 // Titles Yash has never held. Seen as headlines on Vinted, Neara and Micro1 — all three
 // converted to nothing. Matched at the head of the headline only, so an honest body
@@ -43,12 +50,13 @@ const ALLOWED_TITLES = ['Engineering Manager', 'Quality Engineering Manager'];
 //
 // These are ODDS, not bans. Substance decides whether to apply — if Yash can do what the
 // JD describes, he applies, whatever the title. This list only reports that leading with
-// a title he has not held measured 0-for-3 at screening, so he can choose knowingly.
+// a title he has not held measured poorly at screening (CLAUDE.md `## Apply/skip lessons` →
+// LANE CONVERSION DATA), so he can choose knowingly.
 const UNHELD_TITLES = [
   'technical program manager', 'senior technical program manager', 'program manager',
   'project manager', 'senior project manager', 'strategic project', 'delivery lead',
   'pmo lead', 'release manager', 'portfolio release manager', 'senior manager',
-  'director', 'head of', 'software engineering manager', 'engineering leader',
+  'director', 'head of', 'engineering leader',
   'principal', 'staff engineer', 'vp ', 'vice president',
 ];
 
@@ -57,8 +65,8 @@ const UNHELD_TITLES = [
 //
 // Deliberately NOT locked: the MayTek and Atomants titles. Yash's call (2026-08-23) —
 // older titles can be presented at their functional equivalent, and nobody is going to
-// audit a 2013 consultancy title. Only the Delivery Hero title is fixed, because it is
-// current, on LinkedIn, and checkable by any recruiter in ten seconds.
+// audit a 2013 consultancy title. The Delivery Hero title is checked with DH_TITLE_OK (same
+// job, same level, not visibly different) because it is current and on LinkedIn.
 const LOCKED = [
   {
     field: 'years of experience',
@@ -71,17 +79,17 @@ const LOCKED = [
   {
     field: 'Delivery Hero job title',
     find: /^[#*\s]*([A-Za-z][^·|\n]*?)\s*[·|]\s*Delivery Hero|^([A-Za-z][^\n]*?)\n+Delivery Hero SE/im,
-    expect: 'engineering manager',
+    expect: 'an Engineering … Manager title at the same level',
     norm: m => (m[1] || m[2] || '').toLowerCase().trim(),
-    match: (got, expect) => got.includes(expect),
-    why: 'The DH title is a fixed fact: "Engineering Manager / Quality Engineering Manager". Never restyled to the JD.',
+    match: got => DH_TITLE_OK(got),
+    why: 'The DH title can change with the JD but not visibly: keep "Engineering" + "Manager" and the level (no Senior/Director/Head/Staff). It is current and on LinkedIn.',
   },
   {
     field: 'German level',
     find: /German\s*\(([^)]+)\)/i,
-    expect: 'working towards b1',
+    expect: 'b1',
     norm: m => m[1].toLowerCase().trim(),
-    why: 'Yash is not yet B1. Always "working towards B1"; never a bare "B1", never the exam date.',
+    why: 'German is B1 (certified 2026-10-10, but write just "B1"); never above it, never the exam date.',
   },
 ];
 
@@ -251,7 +259,7 @@ function employerClaims(text) {
 // Google Docs gives him: `Yash_resume.md`, `Yash_Kulshreshtha_Resume.md`, `Yash_K_HiveMQ.md`,
 // `resume.md`. A missed baseline is worse than no check — it reports CONSISTENT after
 // comparing against nothing. Never whitelist filenames here.
-const GENERATED = /^(_draft|jd-|screen-|verify-|cover-letter-|pending-lessons|prep-|known-facts-|SUPERSEDED-)/i;
+const GENERATED = /^(_draft|jd-|screen-|verify-|cover-letter-|outreach-|pending-lessons|prep-|known-facts-|SUPERSEDED-)/i;
 const DATED_DRAFT = /^resume-.+-\d{6,8}\.md$/i;
 const isSent = f => f.endsWith('.md') && !GENERATED.test(f) && !DATED_DRAFT.test(f);
 
@@ -283,22 +291,18 @@ function checkConsistency(text, { company, outputDir = 'output', file = null } =
   const title = claimedTitle(text);
   const head = headline(text);
 
-  // 1. Locked headline title.
-  const titleOk = ALLOWED_TITLES.some(t => title.toLowerCase() === t.toLowerCase());
+  // 1. Headline title — CLAUDE.md `## Résumé identity`: the title stays in Yash's own family; the
+  // JD fit goes in the descriptors. A title in the engineering-management or quality family is
+  // fine and says nothing; anything else gets one note.
+  const titleOk = ALLOWED_TITLES.some(t => title.toLowerCase() === t.toLowerCase()) ||
+    ['eng-management', 'quality'].includes(family(title));
   const unheld = UNHELD_TITLES.find(b => title.toLowerCase().startsWith(b));
   if (unheld) {
     findings.push({
-      sev: 'ODDS', rule: 'UNHELD_TITLE',
+      sev: 'NOTE', rule: 'UNHELD_TITLE',
       what: `Headline leads with "${title}", a title not held.`,
-      why: 'Measured: the three résumés that led with a never-held title (Vinted, Neara, Micro1) produced 0 interviews. The seven led by "Engineering Manager" produced 7. Small sample, but it points one way.',
-      fix: `Consider "Engineering Manager — <descriptor> · <descriptor>" with "${title}" framing moved into the descriptors. Ship as-is if you disagree — this is odds, not honesty.`,
-    });
-  } else if (!titleOk && title) {
-    findings.push({
-      sev: 'NOTE', rule: 'NEW_HEADLINE',
-      what: `Headline leads with "${title}", outside the two established identities.`,
-      why: 'Not wrong — just a third identity in circulation. Worth a glance if this employer or a shared recruiter may see another of your résumés.',
-      fix: 'No action needed if this is deliberate for the lane.',
+      why: 'Lane odds for headlines outside the engineering-management family: see CLAUDE.md `## Apply/skip lessons` → LANE CONVERSION DATA.',
+      fix: 'Keep the title in the Engineering Manager family and move the JD fit into the descriptors — an obvious JD-title copy reads as tailored.',
     });
   }
 
@@ -410,12 +414,12 @@ function checkConsistency(text, { company, outputDir = 'output', file = null } =
     if (!seenTitles.has(key)) seenTitles.set(key, []);
     seenTitles.get(key).push(p.company);
   }
-  if (title && !seenTitles.has(title.toLowerCase()) && seenTitles.size) {
+  if (title && !unheld && !titleOk && !seenTitles.has(title.toLowerCase()) && seenTitles.size) {
     findings.push({
       sev: 'NOTE', rule: 'NEW_IDENTITY',
       what: `"${title}" is a headline identity not used on any previous submission.`,
       why: `The search has already used ${seenTitles.size} distinct headline identities. Each new one widens the spread a recruiter or LinkedIn check can see.`,
-      fix: 'Reuse an established locked headline unless there is a deliberate lane reason not to.',
+      fix: 'Reported once; no action needed if mirroring the JD.',
     });
   }
 

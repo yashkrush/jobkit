@@ -30,9 +30,7 @@ Do ONLY these steps — fast, focused, no file writing:
    his skills and accomplishments cover the core of the work.
    Then give APPLY / MAYBE / SKIP with 2 lines of reasoning, mapping 2-3 of the JD's core
    responsibilities to specific things Yash has actually done. **Default to APPLY or MAYBE; reserve
-   SKIP for a real disqualifier named in the filter** (comp below floor, fluent-German/other-language
-   requirement, not English/EU, a coding- or hard-system-design-hinged loop, or a role whose core
-   work Yash genuinely can't do — e.g. pure hands-on IC engineering). "Not EM/QA, or won't manage a
+   SKIP for a real disqualifier named in CLAUDE.md `## Apply / skip filter`** — name which one. "Not EM/QA, or won't manage a
    team" is NOT by itself a SKIP. Be honest.
    **On SKIP, do NOT stop.** Give the verdict, name the disqualifier in one line, then continue the
    analysis anyway — keywords, base résumé, the strongest honest angle. A SKIP is a forecast about
@@ -45,16 +43,16 @@ Do ONLY these steps — fast, focused, no file writing:
 4. Pick the base résumé for the chosen lane and say why in one sentence:
    EM / Operations → `resume-em.md` · QA → `resume-qa.md` · Senior-track → `resume-senior-em.md`
    · TPM (EM-adjacent only) → `resume-tpm.md`.
-   Each lane's headline is locked — see CLAUDE.md `## Résumé identity lock`. Do not propose a
-   headline that leads with the JD's title when Yash has not held it.
+   Headline and fit framing follow CLAUDE.md `## Résumé identity`: the title stays in Yash's own
+   family and the JD fit goes in the descriptors.
 
 VERDICT SEMANTICS — Check Match, Tailor and Prep are ONE decision; keep them on the same page.
 The user acts on APPLY ("if Check Match says APPLY, I take it up"), so the words must mean exactly this:
 - **APPLY** = a genuine go. Yash's REAL skills and accomplishments cover the core of the job, and the
   resume can screen in WITHOUT manufacturing a frame or wearing a gap he can't defend in the room. Only
   return APPLY when you'd stand behind it as a commit.
-- **MAYBE** = worth applying eyes-open, but there's a real gap that will be probed (e.g. a hands-on
-  "builder-EM" archetype vs the no-hands-on-coding limit). NAME the gap and how it plays. A role that
+- **MAYBE** = worth applying eyes-open, but there's a real gap that will be probed (e.g. a JD with
+  hands-on wording but no must-code duty or live-coding loop, or a system-design round). NAME the gap and how it plays. A role that
   only screens in by wearing a frame Yash can't defend is a MAYBE, never a clean APPLY.
 - **SKIP** = a real disqualifier from the apply/skip filter holds. It means **"the odds are poor and
   here is exactly why"** — it is advice, never a veto and never a stopping point. Always still name

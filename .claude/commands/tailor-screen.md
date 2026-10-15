@@ -28,16 +28,14 @@ STEP 3 — SCORE & DIAGNOSE
 - SCREENING SCORE = share of ACHIEVABLE must-haves covered, weighting top-third placement. Report the number.
 - ACHIEVABLE MISSES = achievable keywords missing or buried → these are FIXES (add the standard term where
   it's genuinely true, ideally in the top third). List each with the concrete line to add/change.
-- TITLE-LINE MATCH = do the headline DESCRIPTORS signal the JD's role in standard terms? Only the three
-  descriptors after the em-dash are tunable, and only from the approved vocabulary — the locked title
-  itself is chosen by lane and never by JD (CLAUDE.md `## Résumé identity lock`). So this line measures
-  descriptor fit, never the title. **Never propose restyling the headline INTO the JD's title**; if a
-  fix would require that, it is not an available fix. TITLE CREDIBILITY below measures the opposite risk.
+- TITLE-LINE MATCH = do the headline DESCRIPTORS signal the JD's role in standard terms? Per CLAUDE.md
+  `## Résumé identity` the title stays in Yash's own family; never propose pasting in the JD's title.
+  A headline that is visibly the JD's own title is a FIX (move the fit into the descriptors).
 - DOMAIN-GAP CEILING = how many role-defining keywords are unfakeable zeros. If the role is DEFINED by a
   domain the candidate lacks (many role-specific zeros), say so plainly: screening risk is high regardless of how
   good the transferable match is, and this is an apply/skip signal, not something the resume can fix.
 
-STEP 3b — TITLE CREDIBILITY (added 2026-08-23 — the blind spot that let 0-for-7 through)
+STEP 3b — TITLE CREDIBILITY (added 2026-08-23 — the blind spot keyword coverage can't see)
 Keyword coverage alone could not see why applications died. Vinted scored **READY / 90** and was rejected
 at screening; Mapbox scored 91 and was rejected at screening. High coverage, wrong instrument. What the
 score missed: a recruiter's first filter on a titled req is *"has this person plausibly held this kind of
@@ -48,11 +46,10 @@ Measure and report, in one short block:
   (the canonical record; do not quote them from memory, they change as outcomes land).** State which
   lane this JD sits in and that lane's historical rate. This is the single most predictive number
   available — put it in the report.
-- **Headline title vs. held titles:** does the résumé lead with the locked title for its lane —
-  `Engineering Manager` or `Quality Engineering Manager` (both real) — or a title never held? The three
-  that led with a never-held title returned 0 interviews. See CLAUDE.md `## Résumé identity lock`.
-- **Seniority distance:** the JD's level vs. Yash's real scope (one full-stack team direct, delivery
-  support to 5+, standards reach across 17 teams / ~50 services). Note when the JD wants larger direct
+- **Headline title family:** is the headline title in Yash's own family (`## Résumé identity`)? If
+  not, that's a FIX, with the lane figure quoted once.
+- **Seniority distance:** the JD's level vs. Yash's real scope (direct reports per `## Résumé
+  identity` → Direct reports; standards reach and delivery support per the achievement bank). Note when the JD wants larger direct
   headcount — the N26 rejection reason.
 - **Run `node consistency.js <target> <slug>`** and fold its verdict in — it reports whether this résumé
   reads like the same person as everything already sent, especially to a company applied to before.
@@ -61,13 +58,22 @@ Report as **TITLE CREDIBILITY: STRONG | STRETCH | THIN**, with the one-line reas
 This is **information for Yash's decision, never a stop** — see "THE TOOL NEVER BLOCKS AN APPLICATION" in
 CLAUDE.md. THIN means "these are the odds", not "don't apply", and it never suppresses the résumé build.
 
+STEP 3c — RECRUITER CHECKLIST (added 2026-10-10 — keyword coverage said READY on CVs that were rejected)
+Per CLAUDE.md `## Screening checklist`: list the JD's hard requirements in its own words (years in
+engineering, years leading people, team size, scope, domain, stack, language, location/work
+authorisation). For each one, report TICKED-TOP (answered in its unit in the top half of page 1),
+TICKED-DEEP (answered, but only further down: move it up), or GAP. Also check that `German Permanent
+Resident` is on the contact line, and (EM lane) rule 6: the first four DH bullets are people/delivery
+and at most 3 are quality-led. Each TICKED-DEEP item, and each answerable item left unanswered, is a
+FIX. Report as `CHECKLIST: <ticked-top>/<total>` and include it in the output.
+
 STEP 4 — VERDICT
 - READY — achievable coverage high, key terms in top third, title matches, few/no domain zeros.
 - FIX — achievable misses exist that can be honestly added; list them (this is the actionable win).
 - SCREEN-RISK — achievable coverage is good but the role is domain-defined by gaps the candidate lacks; flag honestly
   and route to the cover letter (where "appetite to learn" can reach a human) + reconsider apply/skip.
-Apply the FIX-bucket changes you safely can (add the genuine standard term, prefer the top third), re-measure,
-and report the before/after score.
+Do NOT edit the résumé file. List each FIX as a concrete line Yash can paste in; the résumé he reviewed
+is the résumé he sends.
 
 OUTPUT: coverage table (achievable: present/top-third/standard; domain-gap: absent ✓), score, the
 fix list, title-match, **title credibility + lane conversion rate**, the domain ceiling, the verdict.

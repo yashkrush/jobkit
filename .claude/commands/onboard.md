@@ -59,5 +59,5 @@ After writing, output:
 - One line confirming `CLAUDE.md` was created and roughly how many achievements/roles were captured.
 - A short "Review before your first tailor:" list — every `[VERIFY: …]` and `[ADD: …]` you left, so
   the person knows exactly what to confirm. State these as items, not questions.
-- One closing line as a fact: "Add a base resume to resumes/ (PDF or DOCX), then use the Tailor tab."
+- One closing line as a fact: "Add a base resume to resumes/ (markdown, rendered to DOCX), then use the Tailor tab."
 Do NOT end by asking what to do next or offering to do more. Never end on a question.

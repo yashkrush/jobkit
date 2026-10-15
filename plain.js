@@ -16,6 +16,11 @@
 const LONG_BULLET_WORDS = 34;   // above this a bullet stops being skimmable
 const DASH_SHARE_LIMIT = 0.4;   // share of bullets allowed to lean on an em-dash
 const UNIFORM_STDEV = 6;        // below this, every bullet is the same shape
+// Simplicity (added 2026-10-10). The sentence cap above let 45-word, two-sentence
+// bullets score 100: each sentence was under 34 words, so nothing fired, and every
+// submitted CV read as PLAIN while still reading as generated. A recruiter skims the
+// BULLET, not the sentence — so the bullet is now measured whole.
+const BULLET_WORDS = 25;        // a whole bullet above this is a paragraph, not a line
 
 // Puff: elevated filler that says nothing a hiring manager can check.
 const PUFF = [
@@ -30,6 +35,8 @@ const PUFF = [
   'delivery discipline', 'engineering excellence', 'culture of quality',
   'empowering teams', 'enabling teams to', 'unlocking', 'at every level',
   'not just', 'more than just', 'in today\'s', 'ever-evolving', 'fast-paced',
+  // Simplicity rule 7 (CLAUDE.md, 2026-10-10)
+  'landscape', 'ways of working', 'data-informed', 'honest conversations',
 ];
 
 // Participles that start a tacked-on "…, giving leadership visibility" benefit clause.
@@ -60,21 +67,26 @@ function bodyLines(md) {
     if (inComment) { if (line.includes('-->')) inComment = false; return; }
     if (/^<!--/.test(line)) { open = null; if (!line.includes('-->')) inComment = true; return; }
     if (/^#{1,6}\s/.test(line)) { section = line.replace(/^#+\s*/, '').toLowerCase(); open = null; return; }
+    // Submitted CVs come back from PDF/DOCX extraction without '#' headings.
+    if (/^(profile|career overview|summary|core competencies|professional experience|work experience|selected projects|education|technical skills|languages( & recognition)?)$/i.test(line)) {
+      section = line.toLowerCase(); open = null; return;
+    }
     if (!line) { open = null; return; }
 
     // Some sources are hard-wrapped at ~100 chars, so one bullet or paragraph spans
     // several physical lines. Join them before measuring — otherwise every sentence
     // looks short and every fragment looks like a dangling clause.
-    const isNew = /^[-*]\s/.test(line) || /^\*/.test(line) || /^#/.test(line);
+    const isNew = /^[-*•●]\s/.test(line) || /^\*/.test(line) || /^#/.test(line);
     if (!isNew && open) { open.text += ' ' + line; return; }
 
     if (/^(technical skills|core competencies|education|languages)/.test(section)) { open = null; return; }
     if (/^\*/.test(line)) { open = null; return; }   // headline, role headers, italic descriptors
-    if (/•/.test(line)) { open = null; return; }     // contact line
+    if (/^[^•●]+•/.test(line)) { open = null; return; }   // contact line (• mid-line, not a bullet marker)
     if (/^<!--/.test(line)) { open = null; return; } // authoring notes, not resume prose
-    const text = line.replace(/^[-*]\s+/, '');
+    if (/^stack:/i.test(line)) { open = null; return; }   // per-role stack row
+    const text = line.replace(/^[-*•●]\s+/, '');
     if ((text.match(/·/g) || []).length >= 2) { open = null; return; }   // `A · B · C` stacks
-    open = { n: i + 1, text, bullet: /^[-*]\s/.test(line), section };
+    open = { n: i + 1, text, bullet: /^[-*•●]\s/.test(line), section };
     out.push(open);
   });
   // Stubs and one-line skill rows aren't prose — drop them only once fully joined.
@@ -90,9 +102,10 @@ function scanPlainLanguage(md) {
   });
 
   for (const l of lines) {
+    // Yash, 2026-10-13: no em- or en-dash anywhere on a document JobKit produces. One is enough to flag.
     const dashes = (l.text.match(EMDASH) || []).length;
-    if (dashes >= 2) {
-      add(l, 'DASH_STACK', 'Two or more em-dash asides in one line — the clearest AI tell. Keep one at most; split the rest into a second sentence or use a comma.');
+    if (dashes >= 1) {
+      add(l, 'DASH', 'Em- or en-dash on the page. Not allowed anywhere: use a comma, colon, "|" in headline/role lines, or a plain hyphen in date ranges.');
     }
 
     // A trailing "…— giving leadership live visibility" benefit clause. Anchored at the
@@ -118,6 +131,26 @@ function scanPlainLanguage(md) {
       if (m) add(l, 'PUFF', 'Filler phrase "' + m[0] + '" — says nothing checkable. Name the actual thing or cut it.', m[0]);
     }
 
+    // One fact per bullet, said once. A second sentence is almost always the generated
+    // "so what" ("Both surface release-risk patterns early.") or a second fact that wants
+    // its own line. Profile prose is exempt — it is a paragraph by design.
+    if (l.bullet) {
+      const bw = words(l.text);
+      if (bw > BULLET_WORDS) {
+        add(l, 'WORDY', 'Bullet runs to ' + bw + ' words (target ≤ 20, cap ' + BULLET_WORDS +
+          '). Keep the fact and the number; cut the explanation. Split if it holds two facts.');
+      }
+      const sentences = l.text.split(/(?<=[.!?])\s+(?=[A-Z])/).filter(x => words(x) >= 3);
+      if (sentences.length >= 2) {
+        add(l, 'TWO_SENTENCES', 'Bullet has ' + sentences.length + ' sentences. One fact per bullet: drop the explanatory sentence, or make it its own bullet.',
+          sentences[sentences.length - 1]);
+      }
+      // Tool pipelines ("Jira / GitHub → BigQuery → Looker") belong in Technical Skills.
+      if (/→|->/.test(l.text)) {
+        add(l, 'TOOL_CHAIN', 'Tool pipeline written into a bullet. Say what was built; the tool names go in Technical Skills.', l.text.match(/[^.(]*(→|->)[^.)]*/)[0]);
+      }
+    }
+
     // Length is measured per SENTENCE, not per line — a 90-word profile made of four
     // ordinary sentences is fine; one 50-word sentence is what reads as generated.
     for (const s of l.text.split(/(?<=[.!?])\s+/)) {
@@ -127,6 +160,23 @@ function scanPlainLanguage(md) {
           '). Split it or drop a clause.', s);
       }
     }
+  }
+
+  // Dashes are banned on EVERY line, including the ones bodyLines skips as non-prose
+  // (headline, role/date lines, education, skills rows). Scan the raw document too.
+  {
+    let inComment = false;
+    const flagged = new Set(flags.filter(f => f.rule === 'DASH').map(f => f.line));
+    String(md || '').split('\n').forEach((raw, i) => {
+      const line = raw.trim();
+      if (inComment) { if (line.includes('-->')) inComment = false; return; }
+      if (/^<!--/.test(line)) { if (!line.includes('-->')) inComment = true; return; }
+      if (EMDASH.test(line) && !flagged.has(i + 1)) {
+        EMDASH.lastIndex = 0;
+        add({ n: i + 1, text: line }, 'DASH', 'Em- or en-dash on the page. Not allowed anywhere: use "|" in headline/role lines, a plain hyphen in date ranges, commas in education, a comma or colon in prose.');
+      }
+      EMDASH.lastIndex = 0;
+    });
   }
 
   // --- Whole-document rhythm ---
@@ -151,20 +201,41 @@ function scanPlainLanguage(md) {
   }
 
   // Score: start at 100, deduct per flag by weight, plus the rhythm notes.
-  const WEIGHT = { DASH_STACK: 6, GERUND_TAIL: 5, TRIPLE: 4, PUFF: 5, LONG: 3 };
+  const WEIGHT = { DASH: 6, GERUND_TAIL: 5, TRIPLE: 4, PUFF: 5, LONG: 3, WORDY: 4, TWO_SENTENCES: 3, TOOL_CHAIN: 3 };
   let score = 100 - flags.reduce((a, f) => a + (WEIGHT[f.rule] || 3), 0) - notes.length * 6;
   score = Math.max(0, Math.min(100, score));
+  // A single dash anywhere caps the verdict below PLAIN, whatever the score.
+  const hasDash = flags.some(f => f.rule === 'DASH');
 
   return {
     score,
-    verdict: score >= 80 ? 'PLAIN' : score >= 60 ? 'FUSSY' : 'AI-SOUNDING',
+    verdict: score >= 80 && !hasDash ? 'PLAIN' : score >= 60 ? 'FUSSY' : 'AI-SOUNDING',
     flags: flags.sort((a, b) => a.line - b.line),
     notes,
     stats: { body_lines: lines.length, bullets: bullets.length, dash_share: +dashShare.toFixed(2), stdev },
   };
 }
 
-module.exports = { scanPlainLanguage };
+// Deterministic dash removal, applied to every document JobKit renders or saves
+// (Yash, 2026-10-13: no em- or en-dash anywhere). Structural lines get "|", "," and "-";
+// prose gets a comma. Facts and keywords are untouched: this only changes punctuation.
+function stripDashes(md) {
+  if (!md) return md;
+  return md.split('\n').map(line => {
+    let l = line;
+    // Headline: **Title — descriptor · descriptor**  →  **Title | descriptor · descriptor**
+    l = l.replace(/^(\*\*[^*]+?) — (.+\*\*)\s*$/, '$1 | $2');
+    // Role line: **Title · Company** — dates | location  →  **Title · Company** | dates | location
+    l = l.replace(/^(\*\*.+?\*\*) — (.+?) \| (.+)$/, '$1 | $2 | $3');
+    // Education: - Degree — University, City · 2011–2013  →  - Degree, University, City, 2011-2013
+    l = l.replace(/^(- .+?) — (.+?) · (\d{4})[–-](\d{4})\s*$/, '$1, $2, $3-$4');
+    // Everything else
+    l = l.replace(/ – /g, ' - ').replace(/–/g, '-').replace(/\s*—\s*/g, ', ');
+    return l;
+  }).join('\n');
+}
+
+module.exports = { scanPlainLanguage, stripDashes };
 
 // CLI: node plain.js <file.md>
 if (require.main === module) {

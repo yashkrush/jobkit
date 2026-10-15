@@ -61,6 +61,7 @@ let _pipelineSearch = '';
 let _calMonth = null;       // {y, m} currently-shown calendar month; null until first render picks a default
 let _interviewEvents = {};  // { slug: [{date, label}] } past interviews mined from company logs (server)
 let _appliedDates = {};     // { slug: 'YYYY-MM-DD' } from company files, for CSV export
+let _recordFields = {};     // { slug: {location, via} } from company files, for CSV export
 let _activeJdText = '';
 
 function setStatus(text, cls) {
@@ -161,12 +162,21 @@ function parseInterviewEvents(rows) {
     const stage = r['stage'] || '';
     if (stageCategory(stage) !== 'interviewing') return;
     const text = stage + '  ' + (r['next action'] || '');
-    const dm = /\b(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?\b/.exec(text);
-    if (!dm) return;
-    const day = +dm[1], month = +dm[2];
+    let day, month, yearRaw;
+    const im = /\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/.exec(text);             // YYYY-MM-DD
+    let dm = im ? null : /\b(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?\b/.exec(text);  // DD.MM[.YY[YY]]
+    if (im) { day = +im[3]; month = +im[2]; yearRaw = im[1]; }
+    else if (dm) { day = +dm[1]; month = +dm[2]; yearRaw = dm[3]; }
+    else {
+      // "Tue 8 Sep 2026" — the written-out form Stage uses as often as the numeric one. Without
+      // it the row falls through to the log-mined event, which carries no time of day.
+      const nm = /\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s*(\d{4})?\b/i.exec(text);
+      if (!nm) return;
+      day = +nm[1]; month = MONTHS.findIndex(x => x.toLowerCase().startsWith(nm[2].toLowerCase())) + 1; yearRaw = nm[3];
+    }
     if (month < 1 || month > 12 || day < 1 || day > 31) return;
     let year;
-    if (dm[3]) year = dm[3].length === 2 ? 2000 + +dm[3] : +dm[3];
+    if (yearRaw) year = yearRaw.length === 2 ? 2000 + +yearRaw : +yearRaw;
     else { const um = /(\d{4})-\d{2}-\d{2}/.exec(r['updated'] || ''); year = um ? +um[1] : new Date().getFullYear(); }
     const date = new Date(year, month - 1, day);
     if (isNaN(date)) return;
@@ -516,15 +526,16 @@ function renderPipelineView() {
 // Export the full pipeline (all rows, ignoring the on-screen filter) as a CSV for
 // AFA / personal records. Built client-side from the already-parsed rows.
 function exportPipelineCsv() {
+  // Standard record columns only: internal fields (tier, next action) stay out of the export.
   const cols = [
     ['company',      'Company'],
     ['role',         'Role'],
-    ['tier',         'Tier'],
-    ['stage',        'Status'],
-    ['warm contact', 'Contact'],
+    ['location',     'Location'],
+    ['via',          'Applied via'],
     ['applied',      'Date applied'],
-    ['next action',  'Next action'],
-    ['updated',      'Last updated'],
+    ['stage',        'Status'],
+    ['result',       'Result date'],
+    ['warm contact', 'Contact'],
   ];
   const rows = _pipelineRows || [];
   if (!rows.length) { alert('No applications to export yet.'); return; }
@@ -536,9 +547,14 @@ function exportPipelineCsv() {
     return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   };
   // real "date applied" comes from the company file; fall back to last-updated
-  const cell = (r, key) => key === 'applied'
-    ? (_appliedDates[slugify(r['company'] || '')] || r['updated'] || '')
-    : r[key];
+  const cell = (r, key) => {
+    const slug = slugify(r['company'] || '');
+    if (key === 'applied') return _appliedDates[slug] || r['updated'] || '';
+    if (key === 'location' || key === 'via') return (_recordFields[slug] || {})[key] || '';
+    // result date = when the status last changed; none while still just Submitted
+    if (key === 'result') return /^submitted$/i.test(clean(r['stage'])) ? '' : (r['updated'] || '');
+    return r[key];
+  };
 
   const lines = [cols.map(c => esc(c[1])).join(SEP)];
   rows.forEach(r => lines.push(cols.map(c => esc(cell(r, c[0]))).join(SEP)));
@@ -556,8 +572,9 @@ function exportPipelineCsv() {
 
 async function loadPipeline() {
   try {
-    const { content, appliedDates, interviewEvents } = await api('/api/pipeline');
+    const { content, appliedDates, recordFields, interviewEvents } = await api('/api/pipeline');
     _appliedDates = appliedDates || {};
+    _recordFields = recordFields || {};
     _interviewEvents = interviewEvents || {};
     renderPipeline(content);
     // Pipeline rows feed the Companies sidebar stage badges — refresh it now that they're loaded.
@@ -605,17 +622,46 @@ function companyStage(slug) {
   return row ? (row['stage'] || '') : '';
 }
 
+// Live vs closed, because a sidebar that lists every company you have ever touched buries the
+// three you are actually mid-process with. Closed stays one click away, never deleted.
+let _companyFilter = 'live';
+
+function companyBucket(slug) {
+  const cat = stageCategory(companyStage(slug));
+  return cat === 'closed' ? 'closed' : 'live';
+}
+
+function renderCompanyChips(counts) {
+  const wrap = document.getElementById('company-chips');
+  if (!wrap) return;
+  const defs = [['live', 'Live'], ['closed', 'Closed'], ['all', 'All']];
+  wrap.innerHTML = defs.map(([k, label]) =>
+    `<button class="btn-sm co-chip${_companyFilter === k ? ' active' : ''}" data-f="${k}">${label} ${counts[k]}</button>`).join('');
+  wrap.querySelectorAll('.co-chip').forEach(c => c.addEventListener('click', () => {
+    _companyFilter = c.dataset.f;
+    renderCompanyList();
+  }));
+}
+
 function renderCompanyList() {
   const list = document.getElementById('company-list');
   if (!list) return;
   list.className = 'co-list';
+
+  const counts = { all: _companyNames.length, live: 0, closed: 0 };
+  _companyNames.forEach(n => counts[companyBucket(n)]++);
+  renderCompanyChips(counts);
+
   const q = _companySearch.trim().toLowerCase();
-  const shown = _companyNames.filter(n => !q || n.replace(/-/g, ' ').toLowerCase().includes(q));
+  const shown = _companyNames.filter(n => {
+    if (_companyFilter !== 'all' && companyBucket(n) !== _companyFilter) return false;
+    return !q || n.replace(/-/g, ' ').toLowerCase().includes(q);
+  });
   if (!_companyNames.length) {
     list.innerHTML = '<p class="co-empty" data-emoji="\u{1F331}"><span class="empty-title">No companies yet</span>Every process starts as one line in Intake.</p>';
     return;
   }
-  if (!shown.length) { list.innerHTML = '<p class="co-empty" data-emoji="\u{1F50D}">Nothing matches that search.</p>'; return; }
+  if (!shown.length) { list.innerHTML = '<p class="co-empty" data-emoji="\u{1F50D}">Nothing here. Try another filter or search.</p>'; return; }
   list.innerHTML = shown.map(n => {
     const stage = companyStage(n);
     const badge = stage ? `<span class="co-card-stage stage-badge ${stageBadgeClass(stage)}">${stageCategory(stage)}</span>` : '';
@@ -643,6 +689,10 @@ function activateCompany(name) {
     document.getElementById('context-add-status').textContent = '';
   }
   window._activeCompany = name;
+  // Opening a closed company from elsewhere (a Discover "applied" tag, say) must not land on a
+  // sidebar that doesn't list it.
+  if (_companyFilter !== 'all' && companyBucket(name) !== _companyFilter) _companyFilter = 'all';
+  renderCompanyList();
   document.querySelectorAll('.co-card').forEach(c => {
     c.classList.toggle('active', c.dataset.name === name);
   });
@@ -781,11 +831,16 @@ async function loadCompany(name) {
       ['cover',  'Cover letters'],
       ['prep',   'Interview prep'],
     ];
+    // Collapsed once a group is long — a company you've been through a few rounds with
+    // otherwise opens on twenty file rows before you reach the process log, which is the part
+    // you came for.
     const html = sections
       .filter(([k]) => groups[k].length)
       .map(([k, label]) =>
-        `<div class="section-sublabel">${label}</div>
-         <div class="files-list" style="margin-bottom:14px">${groups[k].map(fileRow).join('')}</div>`)
+        `<details class="file-group"${groups[k].length <= 4 ? ' open' : ''}>
+           <summary><span class="section-sublabel">${label}</span><span class="file-group-n">${groups[k].length}</span></summary>
+           <div class="files-list">${groups[k].map(fileRow).join('')}</div>
+         </details>`)
       .join('');
 
     if (html && section && fileList) {
@@ -1426,8 +1481,8 @@ document.getElementById('match-run').addEventListener('click', async () => {
       sb.hidden = false;
     } else sb.hidden = true;
 
-    // offer the tailor handoff unless it's a clear SKIP
-    document.getElementById('match-to-tailor').hidden = (d.verdict === 'SKIP');
+    // always offer the tailor handoff — SKIP is a forecast, never a stop (CLAUDE.md: THE TOOL NEVER BLOCKS)
+    document.getElementById('match-to-tailor').hidden = false;
 
     document.getElementById('match-out-wrap').hidden = false;
   } catch (e) {
@@ -1498,6 +1553,11 @@ document.getElementById('tailor-run').addEventListener('click', async () => {
     console.log('[tailor] response:', { output_len: (d.output||'').length, resume_preview_len: (d.resume_preview||'').length, docx_file: d.docx_file, resume_data: !!d.resume_data });
 
     if (!r.ok) throw new Error(d.error || 'Tailor failed');
+    if (!d.resume_preview && !(d.output || '').trim()) {
+      throw new Error(d.timed_out
+        ? 'Tailor ran out of time before saving a résumé. Run it again.'
+        : 'Tailor finished but no résumé came back. Run it again.');
+    }
 
     const wrap = document.getElementById('tailor-out-wrap');
     if (wrap) wrap.hidden = false;
@@ -1588,13 +1648,46 @@ document.getElementById('tailor-run').addEventListener('click', async () => {
     }
     await loadPipeline();
     await loadCompanies();
+    if (d.timed_out) setStatus('Tailor hit its time limit; recovered the saved résumé.', 'error');
+    if (d.gates_pending) pollTailorGates(d.gates_pending, d.ats);
   } catch (e) {
     setStatus('Error: ' + e.message, 'error');
+    // The status dot is a tooltip only — say it where the result would have appeared.
+    const wrap = document.getElementById('tailor-out-wrap');
+    if (wrap) wrap.hidden = false;
+    render('#tailor-out', '**Tailor failed:** ' + e.message);
   } finally {
     setBusy(false);
     stopProgress();
   }
 });
+
+// The screen + verify checks run in the background after the résumé is shown (server.js
+// "Split slow operations"). Poll for them, then refresh the badge. The checks never change the
+// résumé — they report; the file shown is the file downloaded.
+function pollTailorGates(slug, ats) {
+  const miss = $('#ats-missing');
+  if (miss) { miss.className = 'hint'; miss.textContent = 'Checks running in the background (a few minutes). They only report — your résumé and downloads are final now.'; miss.hidden = false; }
+  const started = Date.now();
+  const tick = async () => {
+    let g;
+    try { g = await (await fetch('/api/gates/' + encodeURIComponent(slug))).json(); } catch (e) { g = null; }
+    if (g && g.status === 'done') {
+      showATSBadge(_atsScore, ats, g.screen);
+      const v = g.verify && g.verify.verdict ? ' · Fact check: ' + g.verify.verdict : '';
+      setStatus('Checks done' + v + '. Nothing was changed; the report is in the company folder.', 'ok');
+      const note = $('#ats-missing');
+      if (note && !note.textContent.startsWith('✓') && !note.textContent.startsWith('Screens')) {
+        note.className = 'hint ats-ok'; note.textContent = '✓ Checks done' + v + '. Nothing was changed.';
+      } else if (note) { note.textContent += '  ·  Checks done' + v + '.'; }
+      return;
+    }
+    if (g && g.status === 'error') { if (miss) miss.textContent = 'Quality checks failed: ' + g.error + ' (the résumé is still usable).'; return; }
+    if (Date.now() - started > 20 * 60 * 1000) { if (miss) miss.textContent = 'Quality checks are still running; the screen/verify reports will appear in the company folder.'; return; }
+    setTimeout(tick, 15000);
+  };
+  setTimeout(tick, 15000);
+}
 
 // Senior-track and TPM are distinct lanes — never both at once. Checking one clears the other.
 [['tailor-senior','tailor-tpm'], ['prep-senior','prep-tpm']].forEach(([a, b]) => {
@@ -2089,6 +2182,7 @@ let _discDropped = [];
 let _discDroppedTotal = 0;
 let _discDroppedTally = null;
 let _discFilter = 'all';
+let _discLastRun = null;
 let _discPoll = null;
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -2229,6 +2323,7 @@ async function loadDiscoverResults() {
   _discDroppedTotal = d.droppedTotal ?? _discDropped.length;
   _discDroppedTally = d.droppedTally || null;
 
+  _discLastRun = d.lastRun || null;
   const s = d.stats || {};
   const when = d.lastRun ? new Date(d.lastRun).toLocaleString() : 'never';
   const took = d.lastRunMs ? ` in ${(d.lastRunMs / 1000).toFixed(0)}s` : '';
@@ -2250,22 +2345,28 @@ async function loadDiscoverResults() {
   renderDiscoverDropped();
 }
 
-// A row is hidden once it's been dealt with: crossed off, graded SKIP, or already applied to.
-// Nothing is deleted; the Hidden chip shows everything that dropped out and why.
+// A row is hidden once it's been dealt with: crossed off or already applied to. A SKIP grade
+// stays visible — it is a forecast, and Yash decides (CLAUDE.md: THE TOOL NEVER BLOCKS).
 function discIsHidden(r) {
-  return !!(r.dismissed || r.appliedToRole || r.verdict === 'SKIP');
+  return !!(r.dismissed || r.appliedToRole);
 }
 
+function discIsNew(r) { return !!(_discLastRun && r.foundAt === _discLastRun); }
+
 function renderDiscoverChips() {
-  const counts = { all: 0, APPLY: 0, MAYBE: 0, ungraded: 0, hidden: 0 };
+  const counts = { new: 0, all: 0, APPLY: 0, MAYBE: 0, ungraded: 0, starred: 0, hidden: 0 };
   _discResults.forEach(r => {
+    if (r.starred) counts.starred++;
     if (discIsHidden(r)) { counts.hidden++; return; }
     counts.all++;
+    if (discIsNew(r)) counts.new++;
     if (r.verdict === 'APPLY') counts.APPLY++;
     else if (r.verdict === 'MAYBE') counts.MAYBE++;
     else counts.ungraded++;
   });
-  const defs = [['all', 'All'], ['APPLY', 'Apply'], ['MAYBE', 'Maybe'], ['ungraded', 'Ungraded'], ['hidden', 'Hidden']];
+  // "New" first: the whole complaint is that a run drops a wall of postings on you, and only
+  // the ones the last run actually added are the batch you meant to look at.
+  const defs = [['new', 'New this run'], ['all', 'All'], ['APPLY', 'Apply'], ['MAYBE', 'Maybe'], ['ungraded', 'Ungraded'], ['starred', '★ Shortlist'], ['hidden', 'Hidden']];
   $('#disc-filter-chips').innerHTML = defs.map(([k, label]) =>
     // No inline colour here — `.disc-chip.active` owns the active look. An inline
     // rule would beat the class and paint the label the same colour as its own
@@ -2276,93 +2377,322 @@ function renderDiscoverChips() {
   }));
 }
 
+// The rows the current chip + search actually select. Shared by the list and by triage, so
+// "Triage 41" and the list below it can never disagree about what's in the queue.
+function discVisibleRows() {
+  const q = (($('#disc-list-search') || {}).value || '').trim().toLowerCase();
+  return _discResults.filter(r => {
+    if (_discFilter === 'starred') { if (!r.starred) return false; }
+    else if (_discFilter === 'hidden') { if (!discIsHidden(r)) return false; }
+    else {
+      if (discIsHidden(r)) return false;
+      if (_discFilter === 'new' && !discIsNew(r)) return false;
+      if (_discFilter === 'ungraded' && r.verdict) return false;
+      if (_discFilter === 'APPLY' && r.verdict !== 'APPLY') return false;
+      if (_discFilter === 'MAYBE' && r.verdict !== 'MAYBE') return false;
+    }
+    if (q && !(r.company + ' ' + r.title + ' ' + (r.location || '')).toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+// One line per posting. The old card was ~120px tall, so ninety of them was a 10,000px scroll
+// nobody was ever going to reach the bottom of. Everything secondary (the analysis, the source,
+// the actions) is either on hover or one click away.
+function discRowHtml(r, inGroup) {
+  const v = r.verdict || '';
+  return `
+    <div class="disc-row${r.starred ? ' starred' : ''}" data-uid="${esc(r.uid)}">
+      <span class="disc-dot" style="background:${discVerdictColour(v)}" title="${esc(v || 'ungraded')}"></span>
+      <span class="disc-ats">${r.atsScore != null ? r.atsScore : ''}</span>
+      ${inGroup ? '' : `<span class="disc-co">${esc(r.company)}</span>`}
+      <span class="disc-title" title="${esc(r.title)}">${esc(r.title)}</span>
+      <span class="disc-loc">${esc(r.location || '—')}</span>
+      <span class="disc-tags">
+        ${discKnownTag(r)}
+        ${v ? `<span class="disc-verdict" style="color:${discVerdictColour(v)}">${esc(v)}</span>` : ''}
+      </span>
+      <span class="disc-row-acts">
+        <button class="ghost btn-sm disc-star" title="Shortlist">${r.starred ? '★' : '☆'}</button>
+        <a class="ghost btn-sm" href="${esc(r.url)}" target="_blank" rel="noopener" title="Open posting">↗</a>
+        <button class="ghost btn-sm ${v ? 'disc-why' : 'disc-grade'}">${v ? 'Why?' : 'Grade'}</button>
+        <button class="ghost btn-sm disc-tailor">Tailor</button>
+        <button class="ghost btn-sm disc-dismiss" title="${r.dismissed ? 'Undo' : 'Hide'}">${r.dismissed ? '↺' : '✕'}</button>
+      </span>
+      <div class="rendered disc-analysis" hidden></div>
+    </div>`;
+}
+
 function renderDiscoverResults() {
   const wrap = $('#disc-results');
-  const rows = _discResults.filter(r => {
-    if (_discFilter === 'hidden') return discIsHidden(r);
-    if (discIsHidden(r)) return false;
-    if (_discFilter === 'all') return true;
-    if (_discFilter === 'ungraded') return !r.verdict;
-    return r.verdict === _discFilter;
-  });
-  if (!rows.length) { wrap.innerHTML = '<div class="empty" data-emoji="\u{1F52D}"><span class="empty-title">Nothing new this time</span>Every board was checked. New postings will show up here.</div>'; return; }
+  const rows = discVisibleRows();
+  const triageBtn = $('#disc-triage');
+  if (triageBtn) {
+    const queue = rows.length;
+    triageBtn.textContent = queue ? `⚡ Triage ${queue}` : '⚡ Triage';
+    triageBtn.disabled = !queue;
+  }
+  if (!rows.length) {
+    wrap.innerHTML = '<div class="empty" data-emoji="\u{1F52D}"><span class="empty-title">Nothing here</span>Nothing matches this filter. New postings show up after <strong>Check what\'s new</strong>.</div>';
+    return;
+  }
 
-  wrap.innerHTML = rows.map(r => `
-    <div class="disc-card" data-uid="${esc(r.uid)}" style="border:1px solid var(--border);border-left:3px solid ${discVerdictColour(r.verdict)};border-radius:var(--radius-sm,8px);padding:10px 12px;margin-bottom:8px;background:var(--surface-2)">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span style="font-weight:700;color:${discVerdictColour(r.verdict)};font-size:12px;letter-spacing:.04em">${esc(r.verdict || 'UNGRADED')}</span>
-        ${r.atsScore != null ? `<span class="ats-badge">ATS ${r.atsScore}</span>` : ''}
-        <strong>${esc(r.company)}</strong>
-        <span>${esc(r.title)}</span>
-        ${discKnownTag(r)}
-        <span style="margin-left:auto;display:flex;gap:6px">
-          <a class="ghost btn-sm" href="${esc(r.url)}" target="_blank" rel="noopener">Open ↗</a>
-          ${r.verdict ? '<button class="ghost btn-sm disc-why">Why?</button>' : '<button class="ghost btn-sm disc-grade">Grade</button>'}
-          <button class="ghost btn-sm disc-tailor">Tailor this →</button>
-          <button class="ghost btn-sm disc-dismiss">${r.dismissed ? 'Undo' : '✕'}</button>
-        </span>
-      </div>
-      <div class="hint" style="margin-top:4px">${esc(r.location || 'location not stated')} · ${esc(r.sourceType)}</div>
-      <div class="rendered disc-analysis" hidden style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"></div>
-    </div>`).join('');
+  const grouped = $('#disc-group') && $('#disc-group').checked;
+  if (!grouped) {
+    wrap.innerHTML = rows.map(r => discRowHtml(r)).join('');
+  } else {
+    // Seven Distribusion roles are one decision about Distribusion, not seven decisions.
+    const order = [], byCo = new Map();
+    rows.forEach(r => {
+      if (!byCo.has(r.company)) { byCo.set(r.company, []); order.push(r.company); }
+      byCo.get(r.company).push(r);
+    });
+    wrap.innerHTML = order.map(co => {
+      const list = byCo.get(co);
+      if (list.length === 1) return discRowHtml(list[0]);
+      const best = Math.max(...list.map(r => r.atsScore ?? -1));
+      return `
+        <details class="disc-group" open>
+          <summary>
+            <span class="disc-co">${esc(co)}</span>
+            <span class="disc-group-n">${list.length} roles</span>
+            ${best >= 0 ? `<span class="disc-group-best">best ATS ${best}</span>` : ''}
+          </summary>
+          ${list.map(r => discRowHtml(r, true)).join('')}
+        </details>`;
+    }).join('');
+  }
 
-  wrap.querySelectorAll('.disc-card').forEach(card => {
-    const uid = card.dataset.uid;
-    card.querySelector('.disc-dismiss').addEventListener('click', async () => {
-      const r = _discResults.find(x => x.uid === uid);
-      await api('/api/discover/dismiss', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid, undo: !!r.dismissed }),
-      });
-      r.dismissed = !r.dismissed;
-      renderDiscoverChips(); renderDiscoverResults();
-    });
-    const whyBtn = card.querySelector('.disc-why');
-    if (whyBtn) whyBtn.addEventListener('click', async () => {
-      const box = card.querySelector('.disc-analysis');
-      if (!box.hidden) { box.hidden = true; return; }
-      box.hidden = false;
-      box.innerHTML = 'Loading…';
-      try {
-        const d = await api('/api/discover/result/' + encodeURIComponent(uid));
-        box.innerHTML = marked.parse(d.result.analysis || '_No analysis stored._');
-      } catch (e) { box.textContent = 'Error: ' + e.message; }
-    });
-
-    // The only button that spends anything — one Claude call, one posting.
-    const gradeBtn = card.querySelector('.disc-grade');
-    if (gradeBtn) gradeBtn.addEventListener('click', async () => {
-      const box = card.querySelector('.disc-analysis');
-      gradeBtn.disabled = true; gradeBtn.textContent = 'Grading…';
-      box.hidden = false;
-      box.innerHTML = '<span class="hint">Running /tailor-analyse — about a minute.</span>';
-      try {
-        const d = await api('/api/discover/grade', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uid }),
-        });
-        box.innerHTML = marked.parse(d.analysis || '_No analysis returned._');
-        const rec = _discResults.find(x => x.uid === uid);
-        if (rec) { rec.verdict = d.result.verdict; rec.matchScore = d.result.matchScore; }
-        renderDiscoverChips();
-        gradeBtn.textContent = d.result.verdict || 'Graded';
-      } catch (e) {
-        box.innerHTML = '<span style="color:var(--red)">Error: ' + esc(e.message) + '</span>';
-        gradeBtn.disabled = false; gradeBtn.textContent = 'Grade';
-      }
-    });
-    card.querySelector('.disc-tailor').addEventListener('click', async () => {
-      try {
-        const d = await api('/api/discover/result/' + encodeURIComponent(uid));
-        const r = d.result;
-        const jd = `${r.title}\n${r.company}\n${r.location}\n${r.url}\n\n${r.description || ''}`.trim();
-        switchToTab('tailor');
-        const t = $('#tailor-jd');
-        if (t) { t.value = jd; t.focus(); window.scrollTo(0, 0); }
-      } catch (e) { setStatus(e.message, 'error'); }
-    });
-  });
+  wrap.querySelectorAll('.disc-row').forEach(row => bindDiscRow(row));
   bindDiscKnownTags(wrap);
 }
+
+function bindDiscRow(row) {
+  const uid = row.dataset.uid;
+  const rec = () => _discResults.find(x => x.uid === uid);
+
+  row.querySelector('.disc-dismiss').addEventListener('click', async () => {
+    const r = rec();
+    await discSetDismissed(uid, !r.dismissed);
+    renderDiscoverChips(); renderDiscoverResults();
+  });
+  row.querySelector('.disc-star').addEventListener('click', async () => {
+    const r = rec();
+    await discSetStarred(uid, !r.starred);
+    renderDiscoverChips(); renderDiscoverResults();
+  });
+
+  const whyBtn = row.querySelector('.disc-why');
+  if (whyBtn) whyBtn.addEventListener('click', async () => {
+    const box = row.querySelector('.disc-analysis');
+    if (!box.hidden) { box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = 'Loading…';
+    try {
+      const d = await api('/api/discover/result/' + encodeURIComponent(uid));
+      box.innerHTML = marked.parse(d.result.analysis || '_No analysis stored._');
+    } catch (e) { box.textContent = 'Error: ' + e.message; }
+  });
+
+  // The only button that spends anything — one Claude call, one posting.
+  const gradeBtn = row.querySelector('.disc-grade');
+  if (gradeBtn) gradeBtn.addEventListener('click', async () => {
+    const box = row.querySelector('.disc-analysis');
+    gradeBtn.disabled = true; gradeBtn.textContent = '…';
+    box.hidden = false;
+    box.innerHTML = '<span class="hint">Running /tailor-analyse — about a minute.</span>';
+    try {
+      const d = await discGrade(uid);
+      box.innerHTML = marked.parse(d.analysis || '_No analysis returned._');
+      renderDiscoverChips();
+      gradeBtn.textContent = d.result.verdict || 'Graded';
+    } catch (e) {
+      box.innerHTML = '<span style="color:var(--red)">Error: ' + esc(e.message) + '</span>';
+      gradeBtn.disabled = false; gradeBtn.textContent = 'Grade';
+    }
+  });
+
+  row.querySelector('.disc-tailor').addEventListener('click', () => discSendToTailor(uid));
+}
+
+// ── shared actions, used by both the list and triage ────────────────────────
+async function discSetDismissed(uid, dismissed) {
+  await api('/api/discover/dismiss', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ uid, undo: !dismissed }),
+  });
+  const r = _discResults.find(x => x.uid === uid);
+  if (r) { r.dismissed = dismissed; if (dismissed) r.starred = false; }
+}
+
+async function discSetStarred(uid, starred) {
+  await api('/api/discover/star', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ uid, starred }),
+  });
+  const r = _discResults.find(x => x.uid === uid);
+  if (r) { r.starred = starred; if (starred) r.dismissed = false; }
+}
+
+async function discGrade(uid) {
+  const d = await api('/api/discover/grade', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uid }),
+  });
+  const rec = _discResults.find(x => x.uid === uid);
+  if (rec) { rec.verdict = d.result.verdict; rec.matchScore = d.result.matchScore; }
+  return d;
+}
+
+async function discSendToTailor(uid) {
+  try {
+    const d = await api('/api/discover/result/' + encodeURIComponent(uid));
+    const r = d.result;
+    const jd = `${r.title}\n${r.company}\n${r.location}\n${r.url}\n\n${r.description || ''}`.trim();
+    closeTriage();
+    switchToTab('tailor');
+    const t = $('#tailor-jd');
+    if (t) { t.value = jd; t.focus(); window.scrollTo(0, 0); }
+  } catch (e) { setStatus(e.message, 'error'); }
+}
+
+// ── TRIAGE ──────────────────────────────────────────────────────────────────
+// The list is for browsing; this is for clearing. One posting fills the screen, the JD is
+// already loaded, and every decision is one keystroke — which is the only way ninety of them
+// gets looked at instead of the first three.
+let _triageQueue = [];
+let _triageAt = 0;
+const _triageCache = new Map();
+
+async function triageFetch(uid) {
+  if (_triageCache.has(uid)) return _triageCache.get(uid);
+  const p = api('/api/discover/result/' + encodeURIComponent(uid)).then(d => d.result).catch(() => null);
+  _triageCache.set(uid, p);
+  return p;
+}
+
+function openTriage() {
+  _triageQueue = discVisibleRows();
+  if (!_triageQueue.length) { toast('Nothing to triage'); return; }
+  _triageAt = 0;
+  $('#triage').hidden = false;
+  document.body.style.overflow = 'hidden';
+  renderTriage();
+}
+
+function closeTriage() {
+  const el = $('#triage');
+  if (!el || el.hidden) return;
+  el.hidden = true;
+  document.body.style.overflow = '';
+  renderDiscoverChips();
+  renderDiscoverResults();
+}
+
+function triageCurrent() { return _triageQueue[_triageAt] || null; }
+
+function triageMove(delta) {
+  const next = _triageAt + delta;
+  if (next < 0) return;
+  if (next >= _triageQueue.length) { closeTriage(); toast('Queue cleared ✓', 'good'); return; }
+  _triageAt = next;
+  renderTriage();
+}
+
+async function renderTriage() {
+  const r = triageCurrent();
+  if (!r) { closeTriage(); return; }
+  const n = _triageQueue.length;
+  $('#triage-count').textContent = `${_triageAt + 1} / ${n}`;
+  $('#triage-fill').style.width = ((_triageAt) / n * 100).toFixed(1) + '%';
+  $('#triage-star').classList.toggle('on', !!r.starred);
+  $('#triage-star').textContent = r.starred ? '★ Shortlisted' : '★ Shortlist';
+
+  const card = $('#triage-card');
+  card.scrollTop = 0;
+  card.innerHTML = `
+    <div class="triage-head">
+      <div>
+        <div class="triage-co">${esc(r.company)}</div>
+        <h2 class="triage-title">${esc(r.title)}</h2>
+        <div class="triage-meta">
+          ${esc(r.location || 'location not stated')} · ${esc(r.sourceType)}
+          ${r.postedAt ? ' · posted ' + esc(String(r.postedAt).slice(0, 10)) : ''}
+        </div>
+      </div>
+      <div class="triage-scores">
+        ${r.atsScore != null ? `<span class="ats-badge">ATS ${r.atsScore}</span>` : ''}
+        ${r.verdict ? `<span class="triage-verdict" style="color:${discVerdictColour(r.verdict)}">${esc(r.verdict)}</span>` : ''}
+        ${discKnownTag(r)}
+      </div>
+    </div>
+    <a class="ghost btn-sm" href="${esc(r.url)}" target="_blank" rel="noopener">Open the posting ↗</a>
+    <div class="triage-jd" id="triage-jd">Loading the description…</div>`;
+  bindDiscKnownTags(card);
+
+  const full = await triageFetch(r.uid);
+  if (triageCurrent() !== r) return;                       // moved on while it loaded
+  const jd = $('#triage-jd');
+  if (jd) {
+    const body = (full && full.description || '').trim();
+    const analysis = full && full.analysis;
+    jd.innerHTML = (analysis ? `<div class="triage-analysis rendered">${marked.parse(analysis)}</div>` : '')
+      + (body ? `<pre class="triage-jd-text">${esc(body)}</pre>` : '<span class="hint">No description was published on the board — open the posting.</span>');
+  }
+  // Warm the next one so the queue never stalls on a fetch.
+  const nx = _triageQueue[_triageAt + 1];
+  if (nx) triageFetch(nx.uid);
+}
+
+$('#disc-triage').addEventListener('click', openTriage);
+$('#triage-close').addEventListener('click', closeTriage);
+$('#triage-next').addEventListener('click', () => triageMove(1));
+$('#triage-prev').addEventListener('click', () => triageMove(-1));
+$('#triage-hide').addEventListener('click', async () => {
+  const r = triageCurrent(); if (!r) return;
+  await discSetDismissed(r.uid, true);
+  triageMove(1);
+});
+$('#triage-star').addEventListener('click', async () => {
+  const r = triageCurrent(); if (!r) return;
+  await discSetStarred(r.uid, !r.starred);
+  renderTriage();
+});
+$('#triage-tailor').addEventListener('click', () => {
+  const r = triageCurrent(); if (r) discSendToTailor(r.uid);
+});
+$('#triage-grade').addEventListener('click', async () => {
+  const r = triageCurrent(); if (!r) return;
+  const btn = $('#triage-grade');
+  btn.disabled = true; btn.textContent = 'Grading…';
+  const jd = $('#triage-jd');
+  if (jd) jd.insertAdjacentHTML('afterbegin', '<div class="hint" id="triage-grading">Running /tailor-analyse — about a minute.</div>');
+  try {
+    const d = await discGrade(r.uid);
+    _triageCache.delete(r.uid);
+    if (triageCurrent() === r) renderTriage();
+    toast('Graded: ' + (d.result.verdict || '—'));
+  } catch (e) {
+    toast('Grade failed: ' + e.message, 'bad');
+  } finally { btn.disabled = false; btn.textContent = 'Grade'; }
+});
+
+document.addEventListener('keydown', e => {
+  if ($('#triage').hidden) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName || ''))) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  const map = {
+    escape: closeTriage,
+    j: () => triageMove(1), arrowright: () => triageMove(1),
+    k: () => triageMove(-1), arrowleft: () => triageMove(-1),
+    x: () => $('#triage-hide').click(),
+    s: () => $('#triage-star').click(),
+    g: () => $('#triage-grade').click(),
+    t: () => $('#triage-tailor').click(),
+    o: () => { const r = triageCurrent(); if (r) window.open(r.url, '_blank', 'noopener'); },
+  };
+  if (map[k]) { e.preventDefault(); map[k](); }
+});
 
 function renderDiscoverDropped() {
   const q = ($('#disc-dropped-search')?.value || '').toLowerCase();
@@ -2407,7 +2737,12 @@ function pollDiscover() {
         bar.hidden = true;
         clearInterval(_discPoll);
         if (s.error) setStatus('Discover: ' + s.error, 'error');
+        // Land on this run's batch, not the whole backlog — that's what "check what's new" meant.
+        _discFilter = 'new';
         await loadDiscoverResults();
+        const fresh = _discResults.filter(r => discIsNew(r) && !discIsHidden(r)).length;
+        if (!fresh) { _discFilter = 'all'; renderDiscoverChips(); renderDiscoverResults(); }
+        else toast(`${fresh} new — press Triage to go through them`, 'good');
       }
     } catch (_) { /* transient */ }
   }, 2000);
@@ -2506,6 +2841,8 @@ $('#disc-search-q').addEventListener('keydown', e => { if (e.key === 'Enter') ru
 $('#disc-search-loc').addEventListener('keydown', e => { if (e.key === 'Enter') runDiscoverSearch(false); });
 
 $('#disc-refresh').addEventListener('click', () => { loadDiscoverConfig(); loadDiscoverResults(); });
+$('#disc-list-search').addEventListener('input', renderDiscoverResults);
+$('#disc-group').addEventListener('change', renderDiscoverResults);
 $('#disc-dropped-search').addEventListener('input', renderDiscoverDropped);
 $('#disc-src-search').addEventListener('input', renderDiscoverSources);
 

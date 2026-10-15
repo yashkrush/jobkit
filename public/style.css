@@ -1033,18 +1033,6 @@ input[type="checkbox"] {
 
 /* ═══ DISCOVER ════════════════════════════════════════════════ */
 
-.disc-card {
-  padding: 17px 19px;
-  margin-bottom: 10px;
-  border-radius: var(--radius);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-xs);
-  transition: transform .18s, box-shadow .18s, border-color .18s;
-  animation: row-in .3s ease both;
-}
-.disc-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--accent-soft); }
-.disc-why { font-size: 12.6px; color: var(--muted); margin-top: 5px; }
 .disc-known {
   display: inline-flex;
   align-items: center;
@@ -1064,6 +1052,184 @@ input[type="checkbox"] {
   border: 1px solid var(--border-subtle);
   font-size: 13.2px;
 }
+/* Toolbar above the list — chips on the left, view controls on the right. */
+.disc-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 4px 0 10px;
+}
+.disc-toolbar #disc-filter-chips { flex: 1 1 auto; margin: 0; }
+.disc-view-ctl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.disc-view-ctl input[type="text"] { width: 210px; margin: 0; }
+
+.disc-settings { margin-top: 22px; }
+.disc-settings > summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13.4px;
+  color: var(--muted);
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+}
+.disc-settings > summary::-webkit-details-marker { display: none; }
+.disc-settings > summary::before { content: '▸ '; }
+.disc-settings[open] > summary::before { content: '▾ '; }
+.disc-settings > summary:hover { color: var(--accent); }
+.disc-settings-body { padding-top: 4px; }
+
+/* One posting = one line. A fat card times ninety is a scroll nobody finishes. */
+.disc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  border-bottom-color: var(--border-subtle);
+  font-size: 13.2px;
+  flex-wrap: wrap;
+  transition: background .12s, border-color .12s;
+}
+.disc-row:hover { background: var(--surface-2); border-color: var(--border); }
+.disc-row.starred { background: var(--amber-dim); }
+.disc-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; }
+.disc-ats {
+  font-family: var(--font-mono);
+  font-size: 11.4px;
+  font-weight: 700;
+  color: var(--muted);
+  width: 26px;
+  text-align: right;
+  flex: 0 0 26px;
+}
+.disc-co { font-weight: 700; flex: 0 0 128px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.disc-title { flex: 1 1 240px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+.disc-loc { flex: 0 0 130px; font-size: 11.8px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.disc-verdict { font-size: 11px; font-weight: 800; letter-spacing: .04em; }
+/* Fixed-width right columns, so the verdict and the actions line up down the list instead of
+   sliding around with the length of each title. */
+.disc-tags { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex: 0 0 132px; }
+.disc-row-acts { display: flex; gap: 4px; justify-content: flex-end; flex: 0 0 196px; opacity: 0; transition: opacity .12s; }
+.disc-row:hover .disc-row-acts, .disc-row:focus-within .disc-row-acts { opacity: 1; }
+.disc-row-acts .btn-sm { padding: 3px 8px; font-size: 11.4px; }
+.disc-star { font-size: 14px !important; line-height: 1; }
+.disc-row.starred .disc-row-acts { opacity: 1; }
+.disc-row .disc-analysis { flex: 1 1 100%; }
+
+.disc-group { margin-bottom: 2px; }
+.disc-group > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  cursor: pointer;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 13px;
+  list-style: none;
+  margin-top: 8px;
+}
+.disc-group > summary::-webkit-details-marker { display: none; }
+.disc-group > summary::before { content: '▸'; color: var(--muted); font-size: 11px; }
+.disc-group[open] > summary::before { content: '▾'; }
+.disc-group > summary:hover { background: var(--surface-3); }
+.disc-group > .disc-row { margin-left: 18px; }
+.disc-group > summary .disc-co { flex: 0 0 auto; font-size: 13.4px; }
+.disc-group-best { font-family: var(--font-mono); font-size: 11.4px; font-weight: 700; color: var(--muted); }
+.disc-group-n {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--surface-3);
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+}
+
+/* ── TRIAGE ─────────────────────────────────────────────────── */
+.triage {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.triage-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-wrap: wrap;
+}
+.triage-progress { flex: 0 0 160px; height: 6px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+.triage-progress-fill { height: 100%; background: var(--grad-accent); transition: width .2s; }
+.triage-count { font-family: var(--font-mono); font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.triage-keys { font-size: 11.6px; color: var(--muted); }
+.triage-keys kbd {
+  font-family: var(--font-mono);
+  font-size: 10.6px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+.triage-stage { flex: 1 1 auto; min-height: 0; display: flex; justify-content: center; padding: 20px 20px 0; }
+.triage-card {
+  width: 100%;
+  max-width: 860px;
+  overflow-y: auto;
+  padding: 26px 30px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.triage-head { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 14px; }
+.triage-co { font-size: 12.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); }
+.triage-title { font-size: 25px; font-weight: 800; letter-spacing: -.5px; margin: 3px 0 6px; }
+.triage-meta { font-size: 13px; color: var(--muted); }
+.triage-scores { display: flex; gap: 8px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+.triage-verdict { font-size: 12.5px; font-weight: 800; letter-spacing: .04em; }
+.triage-jd { margin-top: 16px; }
+.triage-analysis {
+  padding: 13px 16px;
+  margin-bottom: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  font-size: 13.2px;
+}
+.triage-jd-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font);
+  font-size: 13.4px;
+  line-height: 1.62;
+  color: var(--text-2);
+  margin: 0;
+}
+.triage-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  padding: 16px 20px 20px;
+  flex-wrap: wrap;
+}
+.triage-btn { padding: 9px 20px; font-size: 13.5px; font-weight: 700; }
+.triage-star.on { background: var(--amber-dim); color: var(--amber); border-color: var(--amber); }
+
+@media (max-width: 700px) {
+  .triage-keys { display: none; }
+  .disc-loc, .disc-ats { display: none; }
+  .disc-row-acts { opacity: 1; }
+}
+
 .disc-srow {
   display: flex;
   align-items: center;
@@ -1092,6 +1258,10 @@ input[type="checkbox"] {
   letter-spacing: -.3px;
   margin-bottom: 12px;
 }
+details.search-card { margin-bottom: 14px; }
+details.search-card > summary.search-card-title { cursor: pointer; list-style: none; margin-bottom: 0; }
+details.search-card[open] > summary.search-card-title { margin-bottom: 12px; }
+details.search-card > summary::-webkit-details-marker { display: none; }
 .search-card-fields {
   display: flex;
   gap: 11px;
@@ -1148,11 +1318,46 @@ input[type="checkbox"] {
   display: flex;
   flex-direction: column;
   gap: 9px;
+  /* Without a height the sticky sidebar grows past the viewport, which silently kills sticky:
+     the bottom of the list becomes unreachable without scrolling the whole page. The list gets
+     its own scroll instead, and search + chips stay pinned. */
+  max-height: calc(100vh - 104px);
+  min-height: 0;
 }
 .co-search { width: 100%; }
+.co-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.co-chip {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  border-radius: var(--radius-pill);
+  padding: 3px 10px;
+  font-size: 11.4px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .14s;
+}
+.co-chip:hover { border-color: var(--accent-soft); color: var(--accent); }
+.co-chip.active { background: var(--grad-accent); border-color: transparent; color: #fff; box-shadow: var(--shadow-accent); }
+.co-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 2px 4px 6px 2px;
+  scrollbar-width: thin;
+}
+.co-list::-webkit-scrollbar { width: 8px; }
+.co-list::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 99px; }
 
 .co-card {
-  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
   border-radius: var(--radius);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1168,8 +1373,9 @@ input[type="checkbox"] {
 }
 .co-card.active .co-card-name { color: #fff; }
 .co-card.active .co-card-stage { background: rgba(255,255,255,.25); color: #fff; }
-.co-card-name { font-size: 13.8px; font-weight: 700; letter-spacing: -.2px; margin-bottom: 5px; }
-.co-card-stage { font-size: 10.8px; padding: 2px 9px; }
+.co-card-name { font-size: 13.2px; font-weight: 700; letter-spacing: -.2px; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.co-card-stage { font-size: 10px; padding: 1px 7px; flex: 0 0 auto; }
+.co-card:hover { transform: none; }
 
 .co-detail {
   padding: 24px;
@@ -1192,12 +1398,32 @@ input[type="checkbox"] {
 
 /* ═══ FILES ═══════════════════════════════════════════════════ */
 
-.files-list { display: flex; flex-direction: column; gap: 7px; }
+.file-group { margin-bottom: 10px; }
+.file-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+.file-group > summary::-webkit-details-marker { display: none; }
+.file-group > summary::before { content: '▸'; color: var(--muted); font-size: 11px; }
+.file-group[open] > summary::before { content: '▾'; }
+.file-group > summary .section-sublabel { margin: 0; }
+.file-group-n {
+  font-size: 10.6px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--surface-3);
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+}
+.files-list { display: flex; flex-direction: column; gap: 4px; margin-top: 7px; }
 .file-row {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 10px 13px;
+  padding: 6px 12px;
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   border: 1px solid var(--border-subtle);
@@ -1258,7 +1484,9 @@ input[type="checkbox"] {
   text-align: center;
   padding-bottom: 5px;
 }
-.cal-days { display: contents; }
+/* NB: .cal-days also carries .cal-grid. `display: contents` used to win over that grid, so the
+   day cells escaped into .cal (a plain block) and a month rendered as 30 stacked full-width
+   rows under a 7-column weekday header — a list, not a calendar. The grid must stay. */
 .cal-cell {
   min-height: 76px;
   padding: 7px;
@@ -1297,7 +1525,7 @@ input[type="checkbox"] {
 .cal-event.red   { background: var(--red-dim);   color: var(--red); }
 .cal-event.gray  { background: var(--gray-dim);  color: var(--muted); }
 .cal-event-c { font-weight: 800; }
-.cal-event-t { font-weight: 500; opacity: .85; }
+.cal-event-t { display: block; font-weight: 500; opacity: .85; }   /* own line, or it reads "12:30–13:30Freenow" */
 
 /* ═══ DIFF / BULLET EDITING ═══════════════════════════════════ */
 
