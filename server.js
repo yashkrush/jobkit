@@ -10,6 +10,7 @@ const { marked } = require('marked');
 const { computeAtsScore } = require('./ats');
 const { stripDashes } = require('./plain');   // no em/en dashes on anything rendered or saved (2026-10-13)
 const discover = require('./discover');
+const { isSent } = require('./consistency');   // one definition of "the CV that was sent" (2026-10-28)
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -834,12 +835,20 @@ const MON = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct
 const NO_INTERVIEW = /\b(?:no|never|without|not\s+an?)\s+(?:\w+\s+){0,2}(?:interview|round|call)\b|\binterviews?\s+(?:did\s+not|didn't|never)\b/i;
 function extractInterviewEvents(md) {
   const events = [];
+  const movedFrom = new Set();   // dates a reschedule replaced: "rescheduled to X (was Y)" drops Y
+  let cancelledOn = null;        // log date of "Interview cancelled": nothing booked after it took place
   (md || '').split('\n').forEach(line => {
     const t = line.trim();
     if (!/^-/.test(t)) return;
     const isoBullet = /^-\s*\[?~?(20\d{2})-(\d{2})-(\d{2})/.exec(t);   // bullet's own log date
     const text = t.replace(/^-\s*/, '');
-    const isInterview = /\b(interview|round|call|talent talk|getting-to-know|panel|onsite|loop)\b/i.test(text);
+    for (const w of text.matchAll(/\bwas\s+(20\d{2}-\d{2}-\d{2})/gi)) movedFrom.add(w[1]);
+    if (isoBullet && /\b(?:interview|round|call)\s+cancel/i.test(text)) {
+      cancelledOn = isoBullet[1] + '-' + isoBullet[2] + '-' + isoBullet[3];
+    }
+    // "slot" counts: "Slot booked: 2026-10-22" and "Slot confirmed: Tuesday 21 Jul 2026" are the only
+    // bullets that hold the date, and they never say "interview" (aboutyou, voize, 2026-11-02).
+    const isInterview = /\b(interview|round|call|slot|talent talk|getting-to-know|panel|onsite|loop)\b/i.test(text);
     const context = /(confirm|book|invit|propos|schedul|complet|attend|\bheld\b|took place|on the proposed date)/i.test(text);
     if (!isInterview || !context || NO_INTERVIEW.test(text)) return;
     const completion = /\b(completed|attended|held|took place|wrapped)\b/i.test(text);
@@ -857,6 +866,8 @@ function extractInterviewEvents(md) {
         const logged = Date.UTC(+isoBullet[1], +isoBullet[2] - 1, +isoBullet[3]);
         if (Date.UTC(y, mo, d) < logged - 183 * 86400000) y += 1;
       } else return;
+    } else if ((m = /\b(20\d{2})-(\d{2})-(\d{2})\b(?=\*{0,2},?\s*\d{1,2}:\d{2})/.exec(text))) {  // YYYY-MM-DD HH:MM: the time marks it as the slot, not an application date
+      y = +m[1]; mo = +m[2] - 1; d = +m[3];
     } else if (completion && isoBullet) {                                 // completed, date only in the log-date
       y = +isoBullet[1]; mo = +isoBullet[2] - 1; d = +isoBullet[3]; m = null;
     } else return;                                                        // no trustworthy interview date → skip
@@ -865,7 +876,10 @@ function extractInterviewEvents(md) {
     // Is this date only a PROPOSAL? Judged from the words right before the date ("Proposed slot:
     // Mon 7 Sep"), not from the bullet as a whole — the same bullet usually also says a
     // confirmation email will follow, so a bullet-wide /confirm/ test reads a proposal as firm.
-    const proposed = m ? /(propos|suggest|offer)/i.test(text.slice(Math.max(0, m.index - 40), m.index)) : false;
+    // A bullet about availability or slots lists times on offer, not a booked interview (mobile-de:
+    // "replied with 22-25 Sep slots" put a phantom interview on 25 Sep).
+    const proposed = m ? (/(propos|suggest|offer)/i.test(text.slice(Math.max(0, m.index - 40), m.index))
+      || /\b(availab\w*|slots)\b/i.test(text)) : false;
 
     // Round number: the LAST ordinal that qualifies an interview/round/call/session. A log bullet
     // reads "advanced past the 1st … invited to a 2nd, slot <date>", so the ordinal belonging to
@@ -884,8 +898,8 @@ function extractInterviewEvents(md) {
   events.forEach(e => firmness.set(e.date, (firmness.get(e.date) || false) || !e.proposed));
   const firmTimes = [...firmness.entries()].filter(([, f]) => f).map(([dt]) => Date.parse(dt));
   const WEEK = 7 * 86400000;
-  const kept = events.filter(e => firmness.get(e.date)
-    || !firmTimes.some(t => Math.abs(t - Date.parse(e.date)) <= WEEK));
+  const kept = events.filter(e => !movedFrom.has(e.date) && !(cancelledOn && e.date > cancelledOn)
+    && (firmness.get(e.date) || !firmTimes.some(t => Math.abs(t - Date.parse(e.date)) <= WEEK)));
 
   const seen = new Set();   // one event per calendar day per company
   return kept.filter(e => (seen.has(e.date) ? false : (seen.add(e.date), true)))
@@ -1700,9 +1714,11 @@ app.post('/api/extract-context', async (req, res) => {
       // (alphabetical, descending) "prep-20260630.md" outranked "Yash_Resume.md", so the
       // learner read a /prep interview pack as the submitted résumé and reported its
       // rehearsed talk-track lines as fabrication-log breaches on the CV.
-      const GENERATED = /^(_draft|jd-|screen-|verify-|cover-letter-|pending-lessons|prep-|known-facts-|SUPERSEDED-)/;
+      // The prefix list lived here AND in consistency.js and drifted (`outreach-` was only there,
+      // `crash-course-` / `stories-` in neither), so a prep pack could again outrank the CV by mtime.
+      // One shared test now: generated-prefix exclusion plus a does-it-look-like-a-CV content check.
       const subMds = files
-        .filter(f => f.endsWith('.md') && !GENERATED.test(f) && !/^resume-.+-\d{6,8}\.md$/.test(f))
+        .filter(f => isSent(f, fsSync.readFileSync(path.join(coDir, f), 'utf8')))
         .map(f => ({ f, t: fsSync.statSync(path.join(coDir, f)).mtimeMs }))
         .sort((a, b) => b.t - a.t)
         .map(x => x.f);

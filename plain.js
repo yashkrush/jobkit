@@ -131,6 +131,10 @@ function scanPlainLanguage(md) {
       if (m) add(l, 'PUFF', 'Filler phrase "' + m[0] + '" — says nothing checkable. Name the actual thing or cut it.', m[0]);
     }
 
+    // Yash, 2026-10-15: qualifiers bolted onto the years sentence invite a probe. Years stay plain.
+    const yq = l.text.match(/leading teams since \d{4}|hands-on (throughout|testing experience)|\d+ years'? hands-on/i);
+    if (yq) add(l, 'PUFF', 'Qualifier on the years ("' + yq[0] + '") is banned: write just "13 years\' experience".', yq[0]);
+
     // One fact per bullet, said once. A second sentence is almost always the generated
     // "so what" ("Both surface release-risk patterns early.") or a second fact that wants
     // its own line. Profile prose is exempt — it is a paragraph by design.

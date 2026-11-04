@@ -212,7 +212,7 @@ const SCOPE_UNITS = [
 // claim, and a missing baseline means the drift check quietly passes (found by a negative
 // test on 2026-08-24: renaming "5+ feature teams" to "9+" raised nothing, because the
 // July résumé said "5+ further feature teams" and never registered).
-const FILLER = '(?:further|additional|more|other|separate|global|internal|manual|product|cross-functional|engineering)';
+const FILLER = '(?:further|additional|more|other|separate|global|internal|manual|product|cross-functional|engineering|qcommerce|mobile|backend)';
 // Longest-first so "product teams" wins over "teams".
 const UNIT_RE = new RegExp(
   '([~≈]?\\d{1,3}\\+?)\\s+(?:' + FILLER + '\\s+){0,2}(' +
@@ -261,7 +261,22 @@ function employerClaims(text) {
 // comparing against nothing. Never whitelist filenames here.
 const GENERATED = /^(_draft|jd-|screen-|verify-|cover-letter-|outreach-|pending-lessons|prep-|known-facts-|SUPERSEDED-)/i;
 const DATED_DRAFT = /^resume-.+-\d{6,8}\.md$/i;
-const isSent = f => f.endsWith('.md') && !GENERATED.test(f) && !DATED_DRAFT.test(f);
+// The prefix list alone kept leaking: every new prep artefact (`crash-course-`, `stories-`) and
+// the Discover batches were read as submissions, so freenow "already held" a résumé headed
+// "Behavioural story bank" (2026-10-28). So a file must also LOOK like a CV: a contact line in
+// its first lines and an Experience heading. That's a content test, not a filename whitelist,
+// and it sorted all 74 output folders correctly when added. Cover letters carry the same
+// contact line, so the heading must stand on its own line (a letter paragraph opening
+// "Experience at…" doesn't count) and a "Dear …" salutation rules the file out.
+const looksLikeResume = text => {
+  const head = text.split('\n').slice(0, 15).join('\n');
+  const opening = text.split('\n').slice(0, 25).join('\n');
+  return /@[\w-]+\.\w+|\+\d[\d ]{7,}/.test(head) &&
+    /^\s*#*\s*\**\s*(professional\s+|work\s+)?experience\s*\**\s*:?\s*$/im.test(text) &&
+    !/^\s*dear\b/im.test(opening);
+};
+const isSent = (f, text) => f.endsWith('.md') && !GENERATED.test(f) && !DATED_DRAFT.test(f) &&
+  (text === undefined || looksLikeResume(text));
 
 function priorSubmissions(outputDir, excludeFile) {
   const found = [];
@@ -275,7 +290,9 @@ function priorSubmissions(outputDir, excludeFile) {
       if (!isSent(f)) continue;
       const full = path.join(outputDir, d.name, f);
       if (excludeFile && path.resolve(full) === path.resolve(excludeFile)) continue;
-      found.push({ company: d.name, file: full, text: fs.readFileSync(full, 'utf8') });
+      const text = fs.readFileSync(full, 'utf8');
+      if (!looksLikeResume(text)) continue;
+      found.push({ company: d.name, file: full, text });
     }
   }
   return found;
@@ -359,7 +376,12 @@ function checkConsistency(text, { company, outputDir = 'output', file = null } =
     for (const [unit, vals] of sNow) {
       if (!sBefore.has(unit)) continue;
       const prevVals = sBefore.get(unit);
-      const changed = [...vals].filter(v => !prevVals.has(v));
+      let changed = [...vals].filter(v => !prevVals.has(v));
+      // A figure can also move by disappearing: the old CV said "17+" and "17", this one only
+      // "17", so nothing above is new and the dropped "+" went unreported (freenow, 2026-10-28).
+      if (!changed.length && [...prevVals].some(v => !vals.has(v) && vals.has(v.replace('+', '')))) {
+        changed = [...vals];
+      }
       if (!changed.length) continue;
       const prev = [...prevVals].join('/'), cur = [...vals].join('/');
       // If the new figure is the one written in the achievement bank, this is a
@@ -443,7 +465,7 @@ function checkConsistency(text, { company, outputDir = 'output', file = null } =
   };
 }
 
-module.exports = { checkConsistency, claimedTitle, headline, priorSubmissions };
+module.exports = { checkConsistency, claimedTitle, headline, priorSubmissions, isSent };
 
 // CLI: node consistency.js <resume.md> [company]
 if (require.main === module) {

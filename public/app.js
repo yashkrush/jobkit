@@ -161,7 +161,12 @@ function parseInterviewEvents(rows) {
   (rows || []).forEach(r => {
     const stage = r['stage'] || '';
     if (stageCategory(stage) !== 'interviewing') return;
-    const text = stage + '  ' + (r['next action'] || '');
+    // Next action is only a fallback, and only when it names a meeting. A follow-up reminder
+    // ("follow up with the recruiter ~6 Nov if no news") is a date to chase, not a round, and it put a
+    // phantom mobile.de interview on 6 Nov (2026-10-28).
+    const next = r['next action'] || '';
+    const nextIsReminder = /follow[\s-]*up|if no(thing| news)?\b|chase|nudge|remind|await|~\s*\d/i.test(next);
+    const text = stage + '  ' + (nextIsReminder ? '' : next);
     let day, month, yearRaw;
     const im = /\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/.exec(text);             // YYYY-MM-DD
     let dm = im ? null : /\b(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?\b/.exec(text);  // DD.MM[.YY[YY]]
